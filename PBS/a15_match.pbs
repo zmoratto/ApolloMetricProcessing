@@ -1,0 +1,38 @@
+#PBS -S /bin/bash
+#PBS -N a15_mtch
+#PBS -l select=1:ncpus=8:mpiprocs=1:ompthreads=8
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -W group_list=e0859
+#PBS -m bea
+
+# Note:
+# ncpus actually means the number of processes that are started per node. Since stereo takes up the whole node we only need one per.
+
+module load mpi-mvapich2/1.2p1/intel-PIC
+
+cd /u/zmoratto/nobackup/Moon/Apollo15_metric
+
+# Print some other environment information
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+echo This jobs runs on the following processors:
+NODES=`cat $PBS_NODEFILE`
+echo $NODES
+
+echo
+echo
+
+# Compute the number of processors
+NPROCS=`wc -l < $PBS_NODEFILE`
+echo This job has allocated $NPROCS nodes
+
+# NEW METHOD
+mpiexec -npernode 1 ~/projects/PythonScripts/super_computer/apollo_v2_processing/process_vwip_match.py `pwd` `cat $PBS_NODEFILE`
+
+# OLD METHOD
+#sanitize -E pbsdsh -- sanitize -dE ~/projects/PythonScripts/super_computer/apollo_v2_processing/process_vwip_match.py `pwd` `cat $PBS_NODEFILE`
+
+
+# -end of script-

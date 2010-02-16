@@ -1,0 +1,16 @@
+Apollo Metric Processing
+
+These are scripts for the processing of large
+Apollo Metric imagery data sets for bundle adjustment
+and stereo correlation.
+
+There are two types of scripts here:
+
+Pythonscripts: Which do most of the work.
+
+PBSscripts: Which call the python scripts and allow
+for submission to the super computer. (specifically
+and only Pleiades)
+
+NOTE: I'm expecting python 2.6. If you are pleiades
+be sure to module load python/2.6.1.

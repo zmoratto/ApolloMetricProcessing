@@ -12,5 +12,7 @@ PBSscripts: Which call the python scripts and allow
 for submission to the super computer. (specifically
 and only Pleiades)
 
+tools: Contains special executables used for matching
+
 NOTE: I'm expecting python 2.6. If you are pleiades
 be sure to module load python/2.6.1.

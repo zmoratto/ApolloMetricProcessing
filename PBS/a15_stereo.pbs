@@ -9,6 +9,10 @@
 # Note:
 # ncpus actually means the number of processes that are started per node. Since stereo takes up the whole node we only need one per.
 
+# Make sure we have python2.6 by golly
+module load python/2.6.1
+module load mpi-mvapich2/1.2p1/intel-PIC
+
 cd /u/zmoratto/nobackup/Moon/Apollo15_metric
  
 # Print some other environment information
@@ -26,7 +30,7 @@ echo
 NPROCS=`wc -l < $PBS_NODEFILE`
 echo This job has allocated $NPROCS nodes
 
-sanitize -E pbsdsh -- sanitize -dE /u/zmoratto/projects/ApolloMetricProcessing/Python/Stereo/stereo_processing.py `pwd` `cat $PBS_NODEFILE`
+mpiexec -npernode 1 /u/zmoratto/projects/ApolloMetricProcessing/Python/Stereo/stereo_processing.py `pwd` `cat $PBS_NODEFILE`
 
 
 # -end of script-

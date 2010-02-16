@@ -1,0 +1,17 @@
+Order of operations:
+
+File Prep:
+
+Original Apollo images from ASU are 2 GB and are greatly over sampled
+and in a higher precision format than scanned. This section reduces every
+thing by 4 and makes it 16 bit. Theres also some other convience funcs.
+
+IP Detection:
+
+This is the more difficult module. This is IP detection and matching.
+There's a lot filtering here for speed and quality. Unfortunately the code
+is most subpar here.
+
+Stereo:
+
+3D model generation scripts.

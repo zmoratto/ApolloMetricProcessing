@@ -1,0 +1,64 @@
+\documentclass[12pt]{article}
+\begin{document}
+
+\section*{Python Script Outline}
+
+\subsection*{File Prep}
+
+\begin{enumerate}
+
+\item \textbf{reduce\_cube.py} \hfill \\
+  Very first step. Reduce cube files from 2 GB to 64 MB cube files.
+
+\item \textbf{time\_check\_modify.py} \hfill \\
+  Used to check time differences between CODE group and INSTRUMENT group. With the modify option on it will write the time stamp in CODE to INSTRUMENT.
+
+\item \textbf{spice\_att\_del.py} \hfill \\
+  Attaches spice data to cube files. With the modify option, this script will delete cube files which do not have spice data.
+
+\item \textbf{angle\_detect\_del.py} \hfill \\
+  Detects emission angle of camera. Emission angle is the angle between ground nadir and the camera look direction. With the modify option, this script will delete cube files that are 5 degrees or greater off nadir. These images are removed for their emission angle because they represent difficulties in interest point matching and stereo correlation.
+
+\item \textbf{rev\_print.py} \emph{(OPTIONAL)} \hfill \\
+  Prints the Apollo orbit/revolution that the file belongs to. With the log option it will save all this information to file.
+
+\item \textbf{produce\_footprints.py} \emph{(OPTIONAL)} \hfill \\
+  Creates KML of footprint outlines from cubes files. Unfortunately this is slow on part of \verb#isis2gml#'s crazy upsampling. Be ready to sit an wait.
+
+\end{enumerate}
+
+\subsection*{Interest Point Detection}
+
+\begin{enumerate}
+
+\item \textbf{center\_lat\_lon\_det.py} \hfill \\
+  Logs every files center LLA for next script.
+
+\item \textbf{match\_prefilter.py} \hfill \\
+  Takes in \verb#center\_lat\_lon\_det.py#'s log and then makes a list of all pairs of images that are within 10 degrees of each other on the surface. This list is used to reduce the number of pair wise matches used later on. In the future this list could be chopped up and used for distributed match processing.
+
+\item \textbf{vwip\_generation.py} \hfill \\
+  Processes cube files into tiffs (via GDAL) and then runs OBALOG on them. This script is meant only for super computer use. And should take 8 nodes about 10 minutes to process 1400 images.
+
+\item \textbf{vwip\_filtering.py} \hfill \\
+  Filter interest points so that they are not on the rims of shadows or near odd specular highlights that are custom to individual images. This is meant for super computer use only.
+
+\item \textbf{vwip\_matching.py} \hfill \\
+  Perform interest point matches. \emph{Currently broken.} This needs to use list provided by prefilter.
+
+\end{enumerate}
+
+\subsection*{Stereo Processing}
+
+\begin{enumerate}
+
+\item \textbf{stereo\_processing.py} \hfill \\
+  Perform stereo processing on super computing nodes. It is expecting to use 4 stereo processes on each with 2 threads per process. Expect to spend 100 CPU hours per stereo process, so budget accordingly.
+
+\end{enumerate}
+
+\section*{Submitting to Pleiades}
+
+\verb#qsub#, have you heard of it \_\_\_\_\_?
+
+\end{document}

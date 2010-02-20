@@ -1,7 +1,7 @@
 #PBS -S /bin/bash
-#PBS -N a15_vwip
-#PBS -l select=128:ncpus=8:mpiprocs=1:ompthreads=8
-#PBS -l walltime=60:00:00
+#PBS -N a15_stereo
+#PBS -l select=16:ncpus=8:mpiprocs=1:ompthreads=8
+#PBS -l walltime=8:00:00
 #PBS -j oe
 #PBS -W group_list=e0859
 #PBS -m bea

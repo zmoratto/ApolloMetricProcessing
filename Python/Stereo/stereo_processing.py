@@ -98,7 +98,7 @@ if __name__ == '__main__':
             colormap_cmds.append(colormap_cmd);
 
     # Creating work pool and processing
-    pool = Pool(processes=4)
+    pool = Pool(processes=8)
 
     print "--- Node "+str(my_node_number)+" processing STEREO ---\n";
     results = [pool.apply_async(job_func, (cmd,)) for cmd in stereo_cmds]

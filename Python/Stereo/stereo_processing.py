@@ -60,7 +60,7 @@ if __name__ == '__main__':
         cam_indx1 = files[i].find(".") # Isis_adjust is not as smart
         cam_indx2 = files[i+1].find(".")
         cam1 = files[i][:cam_indx1] + ".isis_adjust"
-        cam2 = files[i+1]:cam_indx2] + ".isis_adjust"
+        cam2 = files[i+1][:cam_indx2] + ".isis_adjust"
         id1 = (files[i].split("-M-")[1]).split(".")[0]
         id2 = (files[i+1].split("-M-")[1]).split('.')[0]
         output_dir = id1 + "_" + id2 + "-stereo"

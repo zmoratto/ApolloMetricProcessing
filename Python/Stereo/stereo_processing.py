@@ -33,6 +33,8 @@ if __name__ == '__main__':
     task_number = my_node_number;
     number_of_tasks = len(sys.argv)-2;
     print "Assigned task "+str(task_number)+"/"+str(number_of_tasks)
+    name_proc = subprocess.Popen("which stereo",shell=True,stdout=subprocess.PIPE);
+    print "My stereo is: "+name_proc.stdout.readline().strip();
 
     os.chdir(sys.argv[1]);
 
@@ -55,8 +57,10 @@ if __name__ == '__main__':
         if ( diff > 1 ):
             continue;
 
-        cam1 = files[i][0:-3] + "isis_adjust"
-        cam2 = files[i+1][0:-3] + "isis_adjust"
+        cam_indx1 = files[i].find(".") # Isis_adjust is not as smart
+        cam_indx2 = files[i+1].find(".")
+        cam1 = files[i][:cam_indx1] + ".isis_adjust"
+        cam2 = files[i+1]:cam_indx2] + ".isis_adjust"
         id1 = (files[i].split("-M-")[1]).split(".")[0]
         id2 = (files[i+1].split("-M-")[1]).split('.')[0]
         output_dir = id1 + "_" + id2 + "-stereo"
@@ -73,7 +77,7 @@ if __name__ == '__main__':
             print "Found finished stereo - skipping"
         else:
             # Building stereo command
-            stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1+" "+cam2+" "+full_prefix+" && touch "+full_prefix+"-completed.txt";
+            stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1+" "+cam2+" "+full_prefix+" -e 4 && touch "+full_prefix+"-completed.txt";
             stereo_cmds.append(stereo_cmd);
 
         # Building point2dem command

@@ -77,14 +77,14 @@ if __name__ == '__main__':
             print "Found finished stereo - skipping"
         else:
             # Building stereo command
-            stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1+" "+cam2+" "+full_prefix+" -e 4 && touch "+full_prefix+"-completed.txt";
+            stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1+" "+cam2+" "+full_prefix+" && touch "+full_prefix+"-completed.txt";
             stereo_cmds.append(stereo_cmd);
 
         # Building point2dem command
         if (os.path.exists(full_prefix+"-DEM.tif")):
             print "Found finished dem - skipping"
         else:
-            point2dem_cmd = "point2dem " + full_prefix + "-PC.tif --xyz -r moon --default-value -10000";
+            point2dem_cmd = "point2dem " + full_prefix + "-PC.tif --xyz -r moon --default-value -10000 --cache-dir .";
             point2dem_cmds.append(point2dem_cmd);
 
         # Building hillshade command
@@ -102,12 +102,12 @@ if __name__ == '__main__':
             colormap_cmds.append(colormap_cmd);
 
     # Creating work pool and processing
-    pool = Pool(processes=8)
+    pool = Pool(processes=1)
 
-    print "--- Node "+str(my_node_number)+" processing STEREO ---\n";
-    results = [pool.apply_async(job_func, (cmd,)) for cmd in stereo_cmds]
-    for result in results:
-        result.get() # No timeout
+    #print "--- Node "+str(my_node_number)+" processing STEREO ---\n";
+    #results = [pool.apply_async(job_func, (cmd,)) for cmd in stereo_cmds]
+    #for result in results:
+    #    result.get() # No timeout
 
     print "--- Node "+str(my_node_number)+" processing POINT2DEM ---\n";
     results = [pool.apply_async(job_func, (cmd,)) for cmd in point2dem_cmds]

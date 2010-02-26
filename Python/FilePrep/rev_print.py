@@ -38,6 +38,7 @@ def main():
             cmd_return = p.stdout.readlines();
             rev = "";
             for line in cmd_return:
+                line = line.upper()
                 if line.find("_M_REV") >= 0:
                     num = line.split("_M_REV")[1];
                     idx = num.rfind(".");

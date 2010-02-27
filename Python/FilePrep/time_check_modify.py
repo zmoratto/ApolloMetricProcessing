@@ -64,7 +64,12 @@ def main():
             if ( int(time_code[11:13]) > 24 ):
                 print "\tBefore: "+time_code;
                 diff = int(time_code[11:13]) - 24;
-                time_code = time_code[:8]+str(int(time_code[8:10])+1)+time_code[10:];
+                print "\t\tDiff: "+str(diff)
+                print "\t\tDate Corr:"+str(int(time_code[8:10])+1)
+                day_correction = str(int(time_code[8:10])+1);
+                if len(day_correction) == 1:
+                    day_correction = "0"+day_correction
+                time_code = time_code[:8]+day_correction+time_code[10:];
                 if (len(str(diff)) == 2):
                     time_code = time_code[:11]+str(diff)+time_code[13:];
                 else:
@@ -106,6 +111,7 @@ def main():
 
             if ( len(time_instrument) < 23 and len(time_code) == 23 ):
                 print cube+" only has code timestamp!";
+                print "Length: "+str(len(time_code))
                 t_code = datetime.strptime(time_code+"000","%Y-%m-%dT%H:%M:%S.%f");
                 if options.write_log:
                     log.write(cube+", ONLY HAS CODE GROUP\n");

@@ -77,7 +77,7 @@ if __name__ == '__main__':
             print "Found finished stereo - skipping"
         else:
             # Building stereo command
-            stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1+" "+cam2+" "+full_prefix+" && touch "+full_prefix+"-completed.txt";
+            stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1+" "+cam2+" "+full_prefix+" -e 2 && touch "+full_prefix+"-completed.txt";
             stereo_cmds.append(stereo_cmd);
 
         # Building point2dem command
@@ -102,12 +102,12 @@ if __name__ == '__main__':
             colormap_cmds.append(colormap_cmd);
 
     # Creating work pool and processing
-    pool = Pool(processes=1)
+    pool = Pool(processes=3)
 
-    #print "--- Node "+str(my_node_number)+" processing STEREO ---\n";
-    #results = [pool.apply_async(job_func, (cmd,)) for cmd in stereo_cmds]
-    #for result in results:
-    #    result.get() # No timeout
+    print "--- Node "+str(my_node_number)+" processing STEREO ---\n";
+    results = [pool.apply_async(job_func, (cmd,)) for cmd in stereo_cmds]
+    for result in results:
+        result.get() # No timeout
 
     print "--- Node "+str(my_node_number)+" processing POINT2DEM ---\n";
     results = [pool.apply_async(job_func, (cmd,)) for cmd in point2dem_cmds]

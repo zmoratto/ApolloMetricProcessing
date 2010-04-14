@@ -2,3 +2,15 @@
 *pdf
 *.log
 *.aux
+build
+
+# Left overs from CMake
+tools/CMakeCache.txt
+tools/CMakeFiles
+tools/Makefile
+tools/cmake_install.cmake
+tools/install_manifest.txt
+tools/src/CMakeFiles
+tools/src/Makefile
+tools/src/cmake_install.cmake
+tools/src/reduce_match

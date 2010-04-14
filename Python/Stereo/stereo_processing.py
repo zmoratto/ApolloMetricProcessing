@@ -42,7 +42,8 @@ if __name__ == '__main__':
     stereo_cmds = []
     point2dem_cmds = []
     hillshade_cmds = []
-    colormap_cmds = [];
+    colormap_cmds = []
+    orthoproject_cmds = []
     files = glob.glob("*.cub");
     files.sort();
 
@@ -84,22 +85,30 @@ if __name__ == '__main__':
         if (os.path.exists(full_prefix+"-DEM.tif")):
             print "Found finished dem - skipping"
         else:
-            point2dem_cmd = "point2dem " + full_prefix + "-PC.tif --xyz -r moon --default-value -10000 --cache-dir .";
+            point2dem_cmd = "point2dem " + full_prefix + "-PC.tif --xyz -r moon --default-value -32767 --cache-dir .";
             point2dem_cmds.append(point2dem_cmd);
 
         # Building hillshade command
         if (os.path.exists(full_prefix+"-DEM_HILLSHADE.tif")):
             print "Found finished hillshade - skipping"
         else:
-            hillshade_cmd = "hillshade " + full_prefix + "-DEM.tif --nodata-value -10000";
+            hillshade_cmd = "hillshade " + full_prefix + "-DEM.tif --nodata-value -32767";
             hillshade_cmds.append(hillshade_cmd);
 
         # Building colormap command
         if (os.path.exists(full_prefix+"-DEM_CMAP.tif")):
             print "Found finished colormap - skipping"
         else:
-            colormap_cmd = "colormap " + full_prefix + "-DEM.tif --nodata-value -10000 -s " + full_prefix + "-DEM_HILLSHADE.tif --min -8499 --max 10208"
+            colormap_cmd = "colormap " + full_prefix + "-DEM.tif --nodata-value -32767 -s " + full_prefix + "-DEM_HILLSHADE.tif --min -8499 --max 10208"
             colormap_cmds.append(colormap_cmd);
+
+        # Building orthoproject command
+        if (os.path.exists(full_prefix+"-DRG.tif")):
+            print "Found finish drg - skipping"
+        else:
+            # PPD should be 4096 in release and should use original images
+            orthoproject_cmd = "orthoproject " + full_prefix + "-DEM.tif " + files[i] + " " + cam1 + " " + full_prefix +  "-DRG.tif --nodata -32767 --ppd 256"
+            orthoproject_cmds.append( orthoproject_cmd );
 
     # Creating work pool and processing
     pool = Pool(processes=3)
@@ -121,6 +130,11 @@ if __name__ == '__main__':
 
     print "--- Node "+str(my_node_number)+" processing COLORMAP ---\n";
     results = [pool.apply_async(job_func, (cmd,)) for cmd in colormap_cmds]
+    for result in results:
+        result.get() # No timeout
+
+    print "--- Node "+str(my_node_number)+" processing ORTHOPROJECT ---\n";
+    results = [pool.apply_async(job_func, (cmd,)) for cmd in orthoproject_cmds]
     for result in results:
         result.get() # No timeout
 

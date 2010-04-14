@@ -56,7 +56,8 @@ for i in range( min_index, max_index ):
     cube = files[i];
     idx = cube.rfind(".");
     prefix = cube[:idx];
-    cmd = "/u/mlundy/local/bin/gdal_translate "+prefix+".cub "+prefix+".tif";
+    #cmd = "/u/mlundy/local/bin/gdal_translate "+prefix+".cub "+prefix+".tif";
+    cmd = "gdal_translate "+prefix+".cub "+prefix+".tif";
     add_job(cmd);
 wait_on_jobs();
 

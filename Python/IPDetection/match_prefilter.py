@@ -44,7 +44,7 @@ def main():
             lon_f = math.radians( lons[j] );
             
             angle = math.degrees(angle_diff(lat_s, lat_f, lon_s, lon_f));
-            if ( angle < 10 ):
+            if ( angle < 6 ):
                 out.write(file_names[i]+", "+file_names[j]+"\n");
 
     out.close();

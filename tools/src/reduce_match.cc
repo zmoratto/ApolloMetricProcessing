@@ -22,11 +22,12 @@ using namespace vw::ip;
 int main( int argc, char* argv[] ) {
 
   std::vector<std::string> match_files;
-  int max_points;
+  int max_points, min_points;
 
   po::options_description general_options("Options");
   general_options.add_options()
     ("max-pts,m",po::value<int>(&max_points)->default_value(100),"Max points a pair can have. If it execeeds we trim.")
+    ("min-pts,n",po::value<int>(&min_points)->default_value(10),"Minimum points a pair is required to have. Delete if fails this.")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -72,6 +73,12 @@ int main( int argc, char* argv[] ) {
     read_binary_match_file( match_files[i], ip1, ip2 );
 
     vw_out() << "\t>Found " << ip1.size() << " matches.\n\n";
+
+    if ( ip1.size() < min_points ) {
+      std::cout << "Match failed to have enough pairs.\n";
+      fs::remove( match_files[i] );
+      continue;
+    }
 
     vw_out() << "Performing equalization\n";
     equalization( ip1,

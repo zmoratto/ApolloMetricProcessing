@@ -14,6 +14,13 @@ set(PROGRAM_LISTING ${PROGRAM_LISTING} reduce_match)
 # overlap_check_match
 # - An all in one executable for processing matches fresh
 
+# extract clementine gcps
+# - Executable that registers images to clementine and the provides a gcp
+add_executable( extract_clementine_gcp extract_clementine_gcp.cc )
+target_link_libraries( extract_clementine_gcp
+                       ${Boost_LIBRARIES}
+                       ${VisionWorkbench_LIBRARIES} )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_clementine_gcp)
 
 # Setup Installation
 message("Procesing:")

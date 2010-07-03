@@ -28,7 +28,7 @@ mark_as_advanced(
 find_package(Boost REQUIRED
   COMPONENTS program_options system thread filesystem)
 find_package(VisionWorkbench REQUIRED
-  COMPONENTS core image math fileio camera interestpoint)
+  COMPONENTS core image math fileio camera interestpoint cartography)
 find_package(LAPACK-eigen)
 
 include_directories(

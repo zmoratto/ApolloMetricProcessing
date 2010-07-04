@@ -51,21 +51,21 @@ int main( int argc, char* argv[] ) {
     return 1;
   }
 
-  std::string lola_names("/Users/zack/Data/Moon/LOLA/LOLA_64px_p_deg_DEM.tif");
+  std::string lola_names("/Users/zmoratto/Data/Moon/LOLA/LOLA_64px_p_deg_DEM.tif");
 
   std::vector<std::string> clementine_names;
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_30n045_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_30n135_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_30n225_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_30n315_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_30s045_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_30s135_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_30s225_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_30s315_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_75n090_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_75n270_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_75s090_256ppd.tif");
-  clementine_names.push_back("/Users/zack/Data/Moon/Clementine/BaseMapV2/clembase_75s270_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_30n045_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_30n135_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_30n225_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_30n315_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_30s045_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_30s135_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_30s225_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_30s315_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_75n090_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_75n270_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_75s090_256ppd.tif");
+  clementine_names.push_back("/Users/zmoratto/Data/Moon/Clementine/BaseMapV2/clembase_75s270_256ppd.tif");
 
   // Load up those files georeference information
   std::vector<GeoReference> clementine_georef;
@@ -139,7 +139,7 @@ int main( int argc, char* argv[] ) {
         descriptor(apollo, ip_apollo);
       }
 
-      { // Matching
+      try { // Matching
         std::vector<InterestPoint> ip_clem_v, ip_apollo_v;
         std::copy( ip_clem.begin(), ip_clem.end(),
                    std::back_inserter(ip_clem_v) );
@@ -168,6 +168,13 @@ int main( int argc, char* argv[] ) {
           fs::path(clementine_image).replace_extension().string() + "__" +
           fs::path(apollo_image).stem() + ".match";
         write_binary_match_file(match_filename, final_ip1, final_ip2);
+        if ( final_ip1.size() < 8 ) {
+          std::cout << "FAILED TO FIND ENOUGH IPs\n";
+          continue;
+        }
+      }  catch ( ... ) {
+        std::cout << "RANSAC FAILED\n";
+        continue;
       }
     }
 
@@ -199,7 +206,10 @@ int main( int argc, char* argv[] ) {
                           5,5,0);
         cm.set_serial(fs::path(pinhole_name).replace_extension().string());
         cpoint.add_measure(cm);
-      }
+        cnet.add_control_point(cpoint);
+      } // end for loop
+      std::cout << "CNET size: " << cnet.size() << "\n";
+      std::cout << "Control Measure: " << cnet[0] << "\n";
       std::string cnet_file =
         fs::path(pinhole_name).replace_extension("cnet").string();
       std::cout << "Writing: " << cnet_file << "\n";

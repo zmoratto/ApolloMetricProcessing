@@ -58,10 +58,10 @@ if __name__ == '__main__':
         if ( diff > 1 ):
             continue;
 
-        cam_indx1 = files[i].find(".") # Isis_adjust is not as smart
-        cam_indx2 = files[i+1].find(".")
-        cam1 = files[i][:cam_indx1] + ".isis_adjust"
-        cam2 = files[i+1][:cam_indx2] + ".isis_adjust"
+        cam1 = files[i][:files[i].find(".")] + ".isis_adjust"
+        cam2 = files[i+1][:files[i+1].find(".")] + ".isis_adjust"
+        cam1_alt = files[i][:files[i].rfind(".")] + ".isis_adjust"
+        cam2_alt = files[i+1][:files[i+1].rfind(".")] + ".isis_adjust"
         id1 = (files[i].split("-M-")[1]).split(".")[0]
         id2 = (files[i+1].split("-M-")[1]).split('.')[0]
         output_dir = id1 + "_" + id2 + "-stereo"
@@ -77,9 +77,18 @@ if __name__ == '__main__':
         if (os.path.exists(full_prefix+"-completed.txt")):
             print "Found finished stereo - skipping"
         else:
-            # Building stereo command
-            stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1+" "+cam2+" "+full_prefix+" -e 2 && touch "+full_prefix+"-completed.txt";
-            stereo_cmds.append(stereo_cmd);
+            if ( os.path.exists(cam1) and os.path.exists(cam2) ):
+                # Building stereo command
+                stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1+" "+cam2+" "+full_prefix+" && touch "+full_prefix+"-completed.txt";
+                stereo_cmds.append(stereo_cmd);
+            elif (os.path.exists(cam1_alt) and os.path.exists(cam2_alt)):
+                # Building stereo command
+                stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1_alt+" "+cam2_alt+" "+full_prefix+" && touch "+full_prefix+"-completed.txt";
+                stereo_cmds.append(stereo_cmd);
+            else:
+                # Building stereo command
+                stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+full_prefix+" && touch "+full_prefix+"-completed.txt";
+                stereo_cmds.append(stereo_cmd);
 
         # Building point2dem command
         if (os.path.exists(full_prefix+"-DEM.tif")):

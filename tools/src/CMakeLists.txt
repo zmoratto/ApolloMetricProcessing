@@ -23,6 +23,20 @@ target_link_libraries( extract_clementine_gcp
                        ${LAPACK_LIBRARIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_clementine_gcp)
 
+# apollo to pinhole
+# - Converts an Apollo image to pinhole file
+if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
+  add_executable( apollo_to_pinhole apollo_to_pinhole.cc )
+  target_link_libraries( apollo_to_pinhole
+    ${Boost_LIBRARIES}
+    ${VisionWorkbench_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${StereoPipeline_LIBRARIES}
+    ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
+    ${QT_LIBRARIES})
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_to_pinhole)
+endif()
+
 # Setup Installation
 message("Procesing:")
 foreach( PROGRAM ${PROGRAM_LISTING} )

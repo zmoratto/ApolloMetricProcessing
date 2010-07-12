@@ -30,15 +30,48 @@ find_package(Boost REQUIRED
 find_package(VisionWorkbench REQUIRED
   COMPONENTS core image math fileio camera interestpoint cartography bundleadjustment)
 find_package(LAPACK-eigen)
+find_package(StereoPipeline
+  COMPONENTS core isisio)
+find_package(ISIS)
+find_package(CSPICE)
+find_package(QT)
 
 include_directories(
   ${Boost_INCLUDE_DIR}
   ${VisionWorkbench_INCLUDE_DIR}
-  ${LAPACK_INCLUDE_DIR} )
+  ${LAPACK_INCLUDE_DIR})
 link_directories(
   ${Boost_LIBRARY_DIRS}
   ${VisionWorkbench_LIBRARY_DIRS}
-  ${LAPACK_LIBRARIES_DIR} )
+  ${LAPACK_LIBRARIES_DIR})
+
+if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
+  include_directories(${StereoPipeline_INCLUDE_DIR})
+  link_directories(${StereoPipeline_LIBRARY_DIRS})
+endif()
+
+if (IS_DIRECTORY ${ISIS_INCLUDE_DIR})
+  include_directories(${ISIS_INCLUDE_DIR})
+  link_directories(${ISIS_LIBRARY_DIRS})
+endif()
+
+if (CSPICE_FOUND)
+  include_directories(${CSPICE_INCLUDE_DIR})
+  link_directories(${CSPICE_LIBRARY_DIRS})
+endif()
+
+if (QT_FOUND)
+  set(QT_MODS "Qt" "Qt3Support" "QtAssistant" "QtCore" "QtDBus" "QtDesigner" "QtGui" "QtHelp" "QtMultimedia" "QtNetwork" "QtOpenGL" "QtScript" "QtScriptTools" "QtSql" "QtSvg" "QtTest" "QtUiTools" "QtWebKit" "QtXml" "QtXmlPatterns")
+  foreach( QTBASE ${QT_INCLUDE_DIR} )
+    foreach( QTMOD ${QT_MODS} )
+      if( IS_DIRECTORY ${QTBASE}/${QTMOD} )
+        include_directories(${QTBASE}/${QTMOD})
+      endif()
+    endforeach()
+  endforeach()
+  include_directories(${QT_INCLUDE_DIR})
+  link_directories(${QT_LIBRARY_DIRS})
+endif()
 
 # Subdirectories
 add_subdirectory(src)

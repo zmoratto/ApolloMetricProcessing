@@ -37,6 +37,20 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_to_pinhole)
 endif()
 
+# GCP from Control Network
+# - Converts an ISIS style to individual GCPs
+if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
+  add_executable( gcp_from_net gcp_from_net.cc )
+  target_link_libraries( gcp_from_net
+    ${Boost_LIBRARIES}
+    ${VisionWorkbench_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${StereoPipeline_LIBRARIES}
+    ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
+    ${QT_LIBRARIES})
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} gcp_from_net)
+endif()
+
 # Setup Installation
 message("Procesing:")
 foreach( PROGRAM ${PROGRAM_LISTING} )

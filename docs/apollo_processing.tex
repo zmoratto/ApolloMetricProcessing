@@ -72,7 +72,27 @@ mosaic. Currently there are 2 options provided to perform GCP creation.
 
 \subsection*{Manually}
 
-Gathering GCPs
+Gathering GCPs manually is done using part ISIS's Qnet and one part
+any kind of map. The goal is to match features in the input images to
+a single 3D location on a prior finished product. I usually use Google
+Moon showing the Clementine Base Map.
+
+So the work style is starting out with Qnet as usual. For every feature picked in qnet write down it's lat lon location in a file. At the end of the endeavor you should have a ISIS style cnet and lat long file that looks like so:
+
+\begin{verbatim}
+26.009808 3.603112
+23.912069 2.049727
+27.844959 7.315164
+23.554260 6.437514
+27.319273 2.905231
+25.725205 5.222685
+\end{verbatim}
+
+Using gcp\_from\_net utility the above files can be turned into individual gcp files.
+
+\begin{verbatim}
+gcp_from_net ground_control.net latlon_measure.txt *.cub
+\end{verbatim}
 
 \subsection*{Automatically}
 
@@ -105,6 +125,17 @@ that the interest points made are correct.
 \includegraphics[width=4in]{images/aligned_AS16-M-1192.jpg}
 
 Automatically gather GCPs are in a mass number. The utility to extract
-them outputs them in a CNET format to save space.
+them outputs them in a CNET format to save space. Also for the time
+being the auto extraction tool only works with heavily prepared
+examples.
+
+\begin{verbatim}
+echo *.cub | xargs -n 1 apollo_to_pinhole
+echo *.cub | xargs -n 1 echo |
+   awk -F "." '{print "from="$1".lev1.cub to="$1".lev1.tif format=TIFF"}'
+   | xargs -n 3 isis2std
+echo AS*.tif | xargs -n 1 mogrify -resize 1024x1024
+echo *.pinhole | xargs -n 1 extract_clementine_gcp
+\end{verbatim}
 
 \end{document}

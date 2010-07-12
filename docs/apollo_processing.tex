@@ -1,7 +1,9 @@
 \documentclass[12pt]{article}
+\usepackage{graphicx}
+
 \begin{document}
 
-\section*{Python Script Outline}
+\section{Python Scripts Outline}
 
 \subsection*{File Prep}
 
@@ -60,5 +62,49 @@
 \section*{Submitting to Pleiades}
 
 Scripts are submitted to the super computer via the \verb#qsub# command. Notice that currently those scripts need to have their paths changed to match your system. I don't know if a build system could do this.
+
+\section{Gathering Ground Control Points}
+
+Ground Control Points (GCP) are 3D features used by Bundle Adjustment to fix
+a solution to a previously excepted result. This is accomplished
+usually by surveying input images and matching points to a global
+mosaic. Currently there are 2 options provided to perform GCP creation.
+
+\subsection*{Manually}
+
+Gathering GCPs
+
+\subsection*{Automatically}
+
+This is a shot in the dark. The idea is that given a rough estimation
+of where an image was taken from; a crop from a finished mosaic can be
+pulled. With this crop of the mosaic, interest point can be found
+which relate specific LLA locations to pixel within the
+image.
+
+Kickbacks from this approach are that the input images which are often
+high res than the mosaic must be down sampled to the mosaic
+resolution. This makes life easier for the interest point algorithm as
+mine don't check an infinite range in scale. Also this means GCPs are
+only registered to a single image. This automatic approach will
+produce a mass quantity of GCPs that only connect to single
+images. It's unclear if this is good or bad.
+
+Here's an example. This is the input image:
+
+\includegraphics[width=4in]{images/AS16-M-1192.jpg}
+
+A matching crop from the 2nd version of the Clementine 750nm mosaic is this:
+
+\includegraphics[width=4in]{images/AS16-M-1192_clem.jpg}
+
+After gathering interest points, the input Apollo image can then be
+warped to the Clementine. This warp is not helpful but it does prove
+that the interest points made are correct.
+
+\includegraphics[width=4in]{images/aligned_AS16-M-1192.jpg}
+
+Automatically gather GCPs are in a mass number. The utility to extract
+them outputs them in a CNET format to save space.
 
 \end{document}

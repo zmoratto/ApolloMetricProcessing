@@ -117,64 +117,70 @@ int main( int argc, char* argv[] ) {
       }
     }
 
-    { // Extracting interest points from the new clementine image
+    {// Extracting interest points from the new clementine image
       std::string clementine_image =
         fs::path(pinhole_name).replace_extension(".clem.tif").string();
       std::string apollo_image =
         fs::path(pinhole_name).replace_extension(".tif").string();
 
-      const float IDEAL_OBALOG_THRESHOLD = .07;
-      InterestPointList ip_clem, ip_apollo;
-      {
-        OBALoGInterestOperator
-          interest_operator(IDEAL_OBALOG_THRESHOLD/10);
-        IntegralInterestPointDetector<OBALoGInterestOperator>
-          detector( interest_operator );
-        DiskImageView<PixelGray<uint8> > clem(clementine_image),
-          apollo(apollo_image);
-        ip_clem = detect_interest_points(clem, detector);
-        ip_apollo = detect_interest_points(apollo, detector);
-        SGradDescriptorGenerator descriptor;
-        descriptor(clem, ip_clem);
-        descriptor(apollo, ip_apollo);
-      }
+      match_filename =
+        fs::path(clementine_image).replace_extension().string() + "__" +
+        fs::path(apollo_image).stem() + ".match";
 
-      try { // Matching
-        std::vector<InterestPoint> ip_clem_v, ip_apollo_v;
-        std::copy( ip_clem.begin(), ip_clem.end(),
-                   std::back_inserter(ip_clem_v) );
-        std::copy( ip_apollo.begin(), ip_apollo.end(),
-                   std::back_inserter(ip_apollo_v) );
-        DefaultMatcher matcher(0.7);
-        std::vector<InterestPoint> matched_ip1, matched_ip2;
-        matcher(ip_clem_v, ip_apollo_v, matched_ip1, matched_ip2, false,
-                TerminalProgressCallback( "tools.ipalign", "Matching:"));
-
-        std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
-        std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
-        Matrix<double> align_matrix;
-
-        std::vector<int> indices;
-        math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 10);
-        align_matrix = ransac(ransac_ip2,ransac_ip1);
-        indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
-
-        std::vector<InterestPoint> final_ip1, final_ip2;
-        for (unsigned idx=0; idx < indices.size(); ++idx) {
-          final_ip1.push_back(matched_ip1[indices[idx]]);
-          final_ip2.push_back(matched_ip2[indices[idx]]);
+      if ( fs::exists(match_filename) ) {
+        vw_out() << "Found cached image: " << match_filename << "\n";
+      } else {
+        const float IDEAL_OBALOG_THRESHOLD = .07;
+        InterestPointList ip_clem, ip_apollo;
+        {
+          OBALoGInterestOperator
+            interest_operator(IDEAL_OBALOG_THRESHOLD/10);
+          IntegralInterestPointDetector<OBALoGInterestOperator>
+            detector( interest_operator );
+          DiskImageView<PixelGray<uint8> > clem(clementine_image),
+            apollo(apollo_image);
+          ip_clem = detect_interest_points(clem, detector);
+          ip_apollo = detect_interest_points(apollo, detector);
+          SGradDescriptorGenerator descriptor;
+          descriptor(clem, ip_clem);
+          descriptor(apollo, ip_apollo);
         }
-        match_filename =
-          fs::path(clementine_image).replace_extension().string() + "__" +
-          fs::path(apollo_image).stem() + ".match";
-        write_binary_match_file(match_filename, final_ip1, final_ip2);
-        if ( final_ip1.size() < 8 ) {
-          std::cout << "FAILED TO FIND ENOUGH IPs\n";
+
+        try { // Matching
+          std::vector<InterestPoint> ip_clem_v, ip_apollo_v;
+          std::copy( ip_clem.begin(), ip_clem.end(),
+                     std::back_inserter(ip_clem_v) );
+          std::copy( ip_apollo.begin(), ip_apollo.end(),
+                     std::back_inserter(ip_apollo_v) );
+          DefaultMatcher matcher(0.7);
+          std::vector<InterestPoint> matched_ip1, matched_ip2;
+          matcher(ip_clem_v, ip_apollo_v, matched_ip1, matched_ip2, false,
+                  TerminalProgressCallback( "tools.ipalign", "Matching:"));
+
+          std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
+          std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
+          Matrix<double> align_matrix;
+
+          std::vector<int> indices;
+          math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 10);
+          align_matrix = ransac(ransac_ip2,ransac_ip1);
+          indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
+
+          std::vector<InterestPoint> final_ip1, final_ip2;
+          for (unsigned idx=0; idx < indices.size(); ++idx) {
+            final_ip1.push_back(matched_ip1[indices[idx]]);
+            final_ip2.push_back(matched_ip2[indices[idx]]);
+          }
+
+          write_binary_match_file(match_filename, final_ip1, final_ip2);
+          if ( final_ip1.size() < 8 ) {
+            std::cout << "FAILED TO FIND ENOUGH IPs\n";
+            continue;
+          }
+        }  catch ( ... ) {
+          std::cout << "RANSAC FAILED\n";
           continue;
         }
-      }  catch ( ... ) {
-        std::cout << "RANSAC FAILED\n";
-        continue;
       }
     }
 
@@ -204,7 +210,7 @@ int main( int argc, char* argv[] ) {
         ControlMeasure cm(ip2[i].x*5725./1024.,
                           ip2[i].y*5725./1024.,
                           5,5,0);
-        cm.set_serial(fs::path(pinhole_name).replace_extension().string());
+        cm.set_serial(fs::path(pinhole_name).replace_extension("cub").string());
         cpoint.add_measure(cm);
         cnet.add_control_point(cpoint);
       } // end for loop
@@ -214,6 +220,7 @@ int main( int argc, char* argv[] ) {
         fs::path(pinhole_name).replace_extension("cnet").string();
       std::cout << "Writing: " << cnet_file << "\n";
       cnet.write_binary(cnet_file);
+      std::cout << "CNET: " << cnet << "\n";
     }
   }
 }

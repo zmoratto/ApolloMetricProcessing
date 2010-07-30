@@ -128,7 +128,7 @@ int main( int argc, char* argv[] ) {
         fs::path(apollo_image).stem() + ".match";
 
       if ( fs::exists(match_filename) ) {
-        vw_out() << "Found cached image: " << match_filename << "\n";
+        vw_out() << "Found cached match: " << match_filename << "\n";
       } else {
         const float IDEAL_OBALOG_THRESHOLD = .07;
         InterestPointList ip_clem, ip_apollo;
@@ -164,6 +164,12 @@ int main( int argc, char* argv[] ) {
           std::vector<int> indices;
           math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 10);
           align_matrix = ransac(ransac_ip2,ransac_ip1);
+          if ( norm_2(subvector(select_col(align_matrix,2),0,2)) > 200 ||
+               align_matrix(0,0) < 0 || align_matrix(1,1) < 0 ) {
+            std::cout << "RANSAC FITTED TO OUTLIER\n";
+            continue;
+          }
+          std::cout << "Align Matrix: " << align_matrix << "\n";
           indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
 
           std::vector<InterestPoint> final_ip1, final_ip2;

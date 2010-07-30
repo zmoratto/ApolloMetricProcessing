@@ -43,6 +43,15 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   set(PROGRAM_LISTING ${PROGRAM_LISTING} gcp_from_net)
 endif()
 
+# VWIP Filter
+# - Remove IPs that are close to reseaus
+add_executable( vwip_filter vwip_filter.cc )
+target_link_libraries( vwip_filter
+                       ${Boost_LIBRARIES}
+                       ${VisionWorkbench_LIBRARIES}
+                       ${LAPACK_LIBRARIES} )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} vwip_filter)
+
 # Setup Installation
 message("Procesing:")
 foreach( PROGRAM ${PROGRAM_LISTING} )

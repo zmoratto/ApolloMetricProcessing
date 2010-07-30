@@ -64,6 +64,8 @@ foreach(COMPONENT ${VisionWorkbench_FIND_COMPONENTS})
     set(LIBRARY_NAME "HDR")
   elseif( ${UPPERCOMPONENT} STREQUAL "FILEIO")
     set(LIBRARY_NAME "FileIO")
+  elseif( ${UPPERCOMPONENT} STREQUAL "BUNDLEADJUSTMENT")
+    set(LIBRARY_NAME "BundleAdjustment")
   endif()
 
   find_library( VisionWorkbench_${UPPERCOMPONENT}_LIBRARY

@@ -94,7 +94,7 @@ if(StereoPipeline_FOUND)
     endif()
   endforeach()
 else(StereoPipeline_FOUND)
-  message(SEND_ERROR "Unable to find requested StereoPipeline libraries")
+  message(WARNING "Unable to find requested StereoPipeline libraries")
 endif(StereoPipeline_FOUND)
 
 

@@ -1,99 +1,14 @@
-// __BEGIN_LICENSE__
-// Copyright (C) 2006-2010 United States Government as represented by
-// the Administrator of the National Aeronautics and Space Administration.
-// All Rights Reserved.
-// __END_LICENSE__
+/// This is a lazy mod on RANSAC that disallows matrices that couldn't
+/// happen on apollo.
 
-
-/// \file RANSAC.h
-///
-/// Robust outlier rejection using the Random Sample Consensus
-/// (RANSAC) algorithm.
-///
-/// This technique was introduced in:
-///
-/// Fischler, Martin A. and Bolles, Robert C. "Random Sample
-/// Consensus: a Paradigm for Model Fitting with Applications to
-/// Image Analysis and Automated Cartography" (1981)
-///
-/// This generic implementation of RANSAC requires that you supply two
-/// functors:
-///
-/// 1. A "Fitting" functor that, given two vectors of putative
-///    matches, returns an object that is the best fit between the two
-///    data sets.  For example, if you are attempting to robustly
-///    compute the best homography that best describes the
-///    transformation between two sets of N-vectors, the result of the
-///    fitting function would be an NxN matrix.
-///
-///    The fitting function must also provide a result_type typedef
-///    and a method called min_elements_needed_for_fit(example), which
-///    returns the minimum number of matching data points required to
-///    compute a fit.  Again, as an example, to fit a homography
-///    between two sets of 2-D points, you need at least 4 point pairs.
-///
-/// 2. A "Error" functor that, given a pair of data p1 and p2, and
-///    the computed fit function H, returns the distance between p2
-///    and H(p1).  You can think of this as the error for a given p1,
-///    p2 and H.  In the case where you are fitting a homography to a
-///    set of points, this routine could compute the 2-norm of the
-///    error: || p2 - H * p1 ||
-///
-
-#ifndef __VW_MATH_RANSAC_H__
-#define __VW_MATH_RANSAC_H__
+#ifndef __VW_MATH_RANSAC_MOD_H__
+#define __VW_MATH_RANSAC_MOD_H__
 
 #include <vw/Math/Vector.h>
 #include <vw/Core/Log.h>
 
 namespace vw {
   namespace math {
-
-    VW_DEFINE_EXCEPTION(RANSACErr, Exception);
-
-    /// This is a basic error metric can be used when the mathematical
-    /// multiplication and subtraction operators are defined for p1, p2,
-    /// and H.
-    struct L2NormErrorMetric {
-      template <class RelationT, class ContainerT>
-        double operator() (RelationT const& H,
-                           ContainerT const& p1,
-                           ContainerT const& p2) const {
-        return vw::math::norm_2( p2 - H * p1 );
-      }
-    };
-
-    template <int dim>
-      struct HomogeneousL2NormErrorMetric {
-        template <class RelationT, class ContainerT>
-          double operator() (RelationT const& H,
-                             ContainerT const& p1,
-                             ContainerT const& p2) const {
-          Vector<double, dim+1> p1_h, p2_h;
-
-          for (unsigned i = 0; i < dim; i++) {
-            p1_h[i] = p1[i];
-            p2_h[i] = p2[i];
-          }
-
-          p1_h[dim] = 1;
-          p2_h[dim] = 1;
-
-          Vector<double, dim+1> inter_result = H*p1_h;
-          // Re-normalizing. This conditional should only throw if H is
-          // an homography matrix
-          if ( inter_result[dim] != 1 )
-            inter_result /= inter_result[dim];
-
-          return vw::math::norm_2(p2_h - inter_result);
-        }
-      };
-
-    /// This metric can be used to measure the error between a interest
-    /// point p2 and a second interest point p1 that is transformed by a
-    /// 3x3 matrix H.  This is predominately used when matching interest
-    /// points using RANSAC.
-    typedef HomogeneousL2NormErrorMetric<2> InterestPointErrorMetric;
 
     /// RANSAC Driver class
     template <class FittingFuncT, class ErrorFuncT>

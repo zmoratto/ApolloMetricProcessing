@@ -44,13 +44,23 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
 endif()
 
 # VWIP Filter
-# - Remove IPs that are close to reseaus
+# - Remove IPs that are close to reseaus, this is specifically for Apollo
 add_executable( vwip_filter vwip_filter.cc )
 target_link_libraries( vwip_filter
                        ${Boost_LIBRARIES}
                        ${VisionWorkbench_LIBRARIES}
                        ${LAPACK_LIBRARIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} vwip_filter)
+
+# Apollo Match
+# - Slightly smarter match that avoids impossible RANSAC fits.
+add_executable( apollo_match apollo_match.cc )
+target_link_libraries( apollo_match
+                       ${Boost_LIBRARIES}
+                       ${VisionWorkbench_LIBRARIES}
+                       ${LAPACK_LIBRARIES} )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_match)
+
 
 # Setup Installation
 message("Procesing:")

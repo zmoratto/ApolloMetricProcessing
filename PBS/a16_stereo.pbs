@@ -1,0 +1,39 @@
+#PBS -S /bin/bash
+#PBS -N a16_tri
+#PBS -l select=32:ncpus=8:mpiprocs=1:ompthreads=8:model=wes
+#PBS -l walltime=1:00:00
+#PBS -j oe
+#PBS -q normal
+#PBS -W group_list=e0859
+#PBS -m bea
+
+# This script is meant to be one of 10
+
+# Note:
+# ncpus actually means the number of processes that are started per node. Since stereo takes up the whole node we only need one per.
+
+# Make sure we have python2.6 by golly
+module load python/2.6.1
+module load mpi-mvapich2/1.2p1/intel-PIC
+
+cd /u/zmoratto/nobackup/Moon/Apollo16_metric
+ 
+# Print some other environment information
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+echo This jobs runs on the following processors:
+NODES=`cat $PBS_NODEFILE`
+echo $NODES
+
+echo
+echo
+
+# Compute the number of processors
+NPROCS=`wc -l < $PBS_NODEFILE`
+echo This job has allocated $NPROCS nodes
+
+mpiexec -npernode 1 /u/zmoratto/projects/ApolloMetricProcessing/Python/Stereo/stereo_processing.py `pwd` 0 1 `cat $PBS_NODEFILE`
+
+
+# -end of script-

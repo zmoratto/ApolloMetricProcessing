@@ -45,13 +45,6 @@ public:
       return;
     }
 
-    int number_of_positive = 0;
-    BOOST_FOREACH( InterestPoint const& ip, ip1 ) {
-      if ( ip.polarity )
-        number_of_positive++;
-    }
-    std::cout << "Positive " << number_of_positive << "/" << ip1.size() << "\n";
-
     // Allocating negative and positive ANN
     double eps = 0.0;
     ANNpointArray ann_pts;

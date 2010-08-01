@@ -35,6 +35,7 @@ find_package(StereoPipeline
 find_package(ISIS)
 find_package(CSPICE)
 find_package(QT)
+find_package(ANN)
 
 include_directories(
   ${Boost_INCLUDE_DIR}
@@ -44,6 +45,11 @@ link_directories(
   ${Boost_LIBRARY_DIRS}
   ${VisionWorkbench_LIBRARY_DIRS}
   ${LAPACK_LIBRARIES_DIR})
+
+if (IS_DIRECTORY ${ANN_INCLUDE_DIR})
+  include_directories(${ANN_INCLUDE_DIR})
+  link_directories(${ANN_LIBRARY_DIRS})
+endif()
 
 if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   include_directories(${StereoPipeline_INCLUDE_DIR})

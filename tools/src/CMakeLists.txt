@@ -54,16 +54,13 @@ set(PROGRAM_LISTING ${PROGRAM_LISTING} vwip_filter)
 
 # Apollo Match
 # - Slightly smarter match that avoids impossible RANSAC fits.
-if (IS_DIRECTORY ${ANN_INCLUDE_DIR})
-  add_executable( apollo_match apollo_match.cc )
-  target_link_libraries( apollo_match
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
-    ${ANN_LIBRARIES} )
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_match)
-endif()
-
+add_executable( apollo_match apollo_match.cc )
+target_link_libraries( apollo_match
+  ${Boost_LIBRARIES}
+  ${VisionWorkbench_LIBRARIES}
+  ${LAPACK_LIBRARIES}
+  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_match)
 
 # Setup Installation
 message("Procesing:")

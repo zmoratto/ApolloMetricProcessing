@@ -24,6 +24,15 @@ mark_as_advanced(
   CMAKE_INSTALL_RPATH_USE_LINK_PATH
 )
 
+# Building Dep
+if(APPLE)
+  execute_process( COMMAND make macosx-g++
+    WORKING_DIRECTORY ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2 )
+else(APPLE)
+  execute_process( COMMAND make linux-g++
+    WORKING_DIRECTORY ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2 )
+endif(APPLE)
+
 # Defining packages
 find_package(Boost REQUIRED
   COMPONENTS program_options system thread filesystem)
@@ -35,21 +44,17 @@ find_package(StereoPipeline
 find_package(ISIS)
 find_package(CSPICE)
 find_package(QT)
-find_package(ANN)
 
 include_directories(
   ${Boost_INCLUDE_DIR}
   ${VisionWorkbench_INCLUDE_DIR}
-  ${LAPACK_INCLUDE_DIR})
+  ${LAPACK_INCLUDE_DIR}
+  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/include)
 link_directories(
   ${Boost_LIBRARY_DIRS}
   ${VisionWorkbench_LIBRARY_DIRS}
-  ${LAPACK_LIBRARIES_DIR})
-
-if (IS_DIRECTORY ${ANN_INCLUDE_DIR})
-  include_directories(${ANN_INCLUDE_DIR})
-  link_directories(${ANN_LIBRARY_DIRS})
-endif()
+  ${LAPACK_LIBRARIES_DIR}
+  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib)
 
 if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   include_directories(${StereoPipeline_INCLUDE_DIR})

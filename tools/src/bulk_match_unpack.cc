@@ -12,6 +12,14 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 #include <boost/foreach.hpp>
 
+#include <boost/iostreams/device/file_descriptor.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/device/file.hpp>
+namespace io = boost::iostreams;
+
+#include "iprecord.h"
+
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
 
@@ -58,7 +66,44 @@ int main(int argc, char** argv) {
   BOOST_FOREACH( std::string const& file, input_file_names ) {
 
     std::cout << "Loading : " << file << "\n";
+    io::filtering_istream in;
+    in.push( io::gzip_decompressor() );
+    in.push( io::file_source( file ) );
 
+    { // Check for magic word
+      int magic_size;
+      std::string magic;
+      in.read( (char*)&magic_size, sizeof(magic_size) );
+      magic.resize( magic_size );
+      in.read( &magic[0], magic_size );
+      std::cout << "Magic: " << magic << "\n";
+      if ( magic != "Packed Match File!" )
+        vw_throw( IOErr() << "Seem to have wrong or corrupt packed match file!\n" );
+    }
+
+    char name[256];
+    int header_size;
+    std::string header;
+    in.read( (char*)&header_size, sizeof(header_size) );
+    while ( in.good() ) {
+      std::cout << "Header size: " << header_size << "\n";
+      header.resize( header_size );
+      in.read( &header[0], header_size );
+      std::cout << "Found: " << header << "\n";
+
+      std::vector<InterestPoint> ip1, ip2;
+      int match_size;
+      in.read( (char*)&match_size, sizeof(match_size) );
+      for ( unsigned i = 0; i < match_size; i++ ) {
+        ip1.push_back( read_ip_record( in ) );
+      }
+      in.read( (char*)&match_size, sizeof(match_size) );
+      for ( unsigned i = 0; i < match_size; i++ ) {
+        ip2.push_back( read_ip_record( in ) );
+      }
+
+      in.read( (char*)&header_size, sizeof(header_size) );
+    }
   }
 
 }

@@ -35,7 +35,7 @@ endif(APPLE)
 
 # Defining packages
 find_package(Boost REQUIRED
-  COMPONENTS program_options system thread filesystem)
+  COMPONENTS program_options system thread filesystem iostreams)
 find_package(VisionWorkbench REQUIRED
   COMPONENTS core image math fileio camera interestpoint cartography bundleadjustment)
 find_package(LAPACK-eigen)

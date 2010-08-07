@@ -76,7 +76,6 @@
 //            These are given below.
 //----------------------------------------------------------------------
 
-int       ANNkdDim;           // dimension of space
 ANNpoint  ANNkdQ;             // query point
 double    ANNkdMaxErr;        // max tolerable squared error
 ANNpointArray ANNkdPts;       // the points
@@ -94,7 +93,6 @@ void ANNkd_tree::annkSearch(
             double        eps)    // the error bound
 {
 
-  ANNkdDim = dim;           // copy arguments to static equivs
   ANNkdQ = q;
   ANNkdPts = pts;
   ANNptsVisited = 0;        // initialize count of points visited
@@ -106,7 +104,7 @@ void ANNkd_tree::annkSearch(
   ANNkdMaxErr = ANN_POW(1.0 + eps);
   ANN_FLOP(2)               // increment floating op count
 
-    ANNkdPointMK = new ANNmin_k(k);     // create set for closest k points
+  ANNkdPointMK = new ANNmin_k(k);     // create set for closest k points
   // search starting at the root
   root->ann_search(annBoxDistance(q, bnd_box_lo, bnd_box_hi, dim));
 
@@ -186,7 +184,7 @@ void ANNkd_leaf::ann_search(ANNdist box_dist)
     qq = ANNkdQ;                     // first coord of query point
     dist = 0;
 
-    for(d = 0; d < ANNkdDim; d++) {
+    for(d = 0; d < dim; d++) {
       ANN_COORD(1)                   // one more coordinate hit
         ANN_FLOP(4)                  // increment floating ops
 
@@ -197,7 +195,7 @@ void ANNkd_leaf::ann_search(ANNdist box_dist)
       }
     }
 
-    if (d >= ANNkdDim &&             // among the k best?
+    if (d >= dim &&             // among the k best?
         (ANN_ALLOW_SELF_MATCH || dist!=0)) { // and no self-match problem
       // add it to the list
       ANNkdPointMK->insert(dist, bkt[i]);

@@ -57,7 +57,6 @@ class ANNkd_node{                    // generic kd-tree node (empty shell)
                         ANNorthRect &bnd_box) = 0;  // bounding box
   // print node
   virtual void print(int level, ostream &out) = 0;
-  virtual void dump(ostream &out) = 0;          // dump node
 
   friend class ANNkd_tree;                      // allow kd-tree to access us
 };
@@ -70,8 +69,8 @@ class ANNkd_node{                    // generic kd-tree node (empty shell)
 //----------------------------------------------------------------------
 
 typedef void (*ANNkd_splitter)(          // splitting routine for kd-trees
-             ANNpointArray pa, // point array (unaltered)
-             ANNidxArray   pidx, // point indices (permuted on return)
+             ANNpointArray pa,           // point array (unaltered)
+             ANNidxArray   pidx,         // point indices (permuted on return)
              const ANNorthRect &bnds,    // bounding rectangle for cell
              int             n,          // number of points
              int           dim,          // dimension of space
@@ -92,14 +91,12 @@ class ANNkd_leaf: public ANNkd_node             // leaf node for kd-tree
 {
   int         n_pts;                  // no. points in bucket
   ANNidxArray bkt;                    // bucket of points
+  int         dim;                    // point dimensionality
  public:
-  ANNkd_leaf(                         // constructor
-             int         n,           // number of points
-             ANNidxArray b)           // bucket
-    {
-      n_pts = n;          // number of points in bucket
-      bkt   = b;          // the bucket
-    }
+  ANNkd_leaf( int         n, // number of points
+              ANNidxArray b, // bucket
+              int         d  // dimensionality
+              ) : n_pts(n), bkt(b), dim(d) {}
 
   ~ANNkd_leaf() { }       // destructor (none)
 
@@ -108,7 +105,6 @@ class ANNkd_leaf: public ANNkd_node             // leaf node for kd-tree
                         ANNkdStats &st, // statistics
                         ANNorthRect &bnd_box);// bounding box
   virtual void print(int level, ostream &out);// print node
-  virtual void dump(ostream &out);                      // dump node
 
   virtual void ann_search(ANNdist);                     // standard search
   virtual void ann_pri_search(ANNdist);         // priority search
@@ -174,7 +170,6 @@ class ANNkd_split : public ANNkd_node  // splitting node of a kd-tree
                         ANNkdStats &st,       // statistics
                         ANNorthRect &bnd_box);// bounding box
   virtual void print(int level, ostream &out);// print node
-  virtual void dump(ostream &out);            // dump node
   virtual void ann_search(ANNdist);           // standard search
   virtual void ann_pri_search(ANNdist);       // priority search
   virtual void ann_FR_search(ANNdist);        // fixed-radius search

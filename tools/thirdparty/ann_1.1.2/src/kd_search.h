@@ -38,7 +38,6 @@
 //              among the various search procedures.
 //----------------------------------------------------------------------
 
-extern int            ANNkdDim;       // dimension of space (static copy)
 extern ANNpoint       ANNkdQ;         // query point (static copy)
 extern double         ANNkdMaxErr;    // max tolerable squared error
 extern ANNpointArray  ANNkdPts;       // the points (static copy)

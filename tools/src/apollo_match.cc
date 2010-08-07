@@ -168,7 +168,8 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  // Iterate over combinations of the input files and find interest points in each.
+  // Iterate over combinations of the input files and find interest
+  // points in each.
   for (unsigned i = 0; i < input_file_names.size(); ++i) {
     for (unsigned j = i+1; j < input_file_names.size(); ++j) {
 

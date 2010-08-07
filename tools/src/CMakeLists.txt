@@ -62,6 +62,23 @@ target_link_libraries( apollo_match
   ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_match)
 
+# Apollo Bulk Match
+add_executable( apollo_bulk_match apollo_bulk_match.cc )
+target_link_libraries( apollo_bulk_match
+  ${Boost_LIBRARIES}
+  ${VisionWorkbench_LIBRARIES}
+  ${LAPACK_LIBRARIES}
+  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_bulk_match )
+
+# Bulk Match Unpack
+add_executable( bulk_match_unpack bulk_match_unpack.cc )
+target_link_libraries( bulk_match_unpack
+  ${Boost_LIBRARIES}
+  ${VisionWorkbench_LIBRARIES}
+  ${LAPACK_LIBRARIES} )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} bulk_match_unpack )
+
 # Setup Installation
 message("Procesing:")
 foreach( PROGRAM ${PROGRAM_LISTING} )

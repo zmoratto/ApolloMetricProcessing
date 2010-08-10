@@ -19,6 +19,8 @@ tools/src/apollo_to_pinhole
 tools/src/gcp_from_net
 tools/src/apollo_match
 tools/src/vwip_filter
+tools/src/apollo_bulk_match
+tools/src/bulk_match_unpack
 
 tools/thirdparty/ann_1.1.2/lib
 tools/thirdparty/ann_1.1.2/src/*.o

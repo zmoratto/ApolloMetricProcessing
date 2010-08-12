@@ -79,6 +79,17 @@ target_link_libraries( bulk_match_unpack
   ${LAPACK_LIBRARIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} bulk_match_unpack )
 
+# CNET Convert
+if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
+  add_executable( cnet_convert cnet_convert.cc )
+  target_link_libraries( cnet_convert
+    ${Boost_LIBRARIES}
+    ${VisionWorkbench_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${StereoPipeline_LIBRARIES} )
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_convert)
+endif()
+
 # Setup Installation
 message("Procesing:")
 foreach( PROGRAM ${PROGRAM_LISTING} )

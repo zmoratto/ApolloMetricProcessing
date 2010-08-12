@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
       }
 
       std::string output_filename =
-        fs::path(input_file_names[i]).replace_extension().string() + "__" +
+        fs::path(input_file_names[i]).stem() + "__" +
         fs::path(input_file_names[j]).stem() + ".match";
       write_binary_match_file(output_filename, final_ip1, final_ip2);
     }

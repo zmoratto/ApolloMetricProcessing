@@ -173,7 +173,7 @@ int main( int argc, char** argv ) {
                                              dst_crn[dst_index1].end(),
                                              ContainsEqualMeasure(cm1->position()));
           if ( dst_feature1 == dst_crn[dst_index1].end() ) {
-            dst_crn[dst_index1].relations.push_front( f_ptr( new IPFeature(*cm1,dst_index1) ));
+            dst_crn[dst_index1].relations.push_front( f_ptr( new IPFeature(*cm1,0, dst_index1) ));
             dst_feature1 = dst_crn[dst_index1].begin();
           }
           while ( cm2 != cp.end() ) {
@@ -186,7 +186,7 @@ int main( int argc, char** argv ) {
                                                dst_crn[dst_index2].end(),
                                                ContainsEqualMeasure(cm2->position()));
             if ( dst_feature2 == dst_crn[dst_index2].end() ) {
-              dst_crn[dst_index2].relations.push_front( f_ptr( new IPFeature( *cm2, dst_index2 )));
+              dst_crn[dst_index2].relations.push_front( f_ptr( new IPFeature( *cm2, 0, dst_index2 )));
               dst_feature2 = dst_crn[dst_index2].begin();
             }
 

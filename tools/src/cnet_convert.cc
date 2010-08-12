@@ -65,7 +65,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   std::ostringstream usage;
   usage << "Usage: " << argv[0] << " [options] <cnet_file> <list_of_cameras>\n";
 
-  opt.convert_isis = vm.count("input-files");
+  opt.convert_isis = vm.count("convert-isis");
   opt.convert_serial_to_name = vm.count("convert-serial-to-name");
 
   if ( vm.count("help") )

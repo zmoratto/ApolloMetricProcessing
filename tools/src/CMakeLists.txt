@@ -90,6 +90,17 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_convert)
 endif()
 
+# CNET Merge
+if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
+  add_executable( cnet_merge cnet_merge.cc )
+  target_link_libraries( cnet_merge
+    ${Boost_LIBRARIES}
+    ${VisionWorkbench_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${StereoPipeline_LIBRARIES} )
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_merge)
+endif()
+
 # Setup Installation
 message("Procesing:")
 foreach( PROGRAM ${PROGRAM_LISTING} )

@@ -31,11 +31,22 @@ int find_destination_index( int const& source_idx,
   if ( search == dst_map.end() ) {
     dst_max_idx++;
     dst_index = dst_max_idx;
-    dst_map[ src_map.find(source_idx)->second ] = dst_index;
+    std::string serial = src_map.find(source_idx)->second;
+    vw_out() << "  Adding camera w/ serial: " << serial << "\n";
+    dst_map[ serial ] = dst_index;
   } else {
     dst_index = search->second;
   }
   return dst_index;
+}
+
+void print_cnet_statistics( ControlNetwork const& cnet ) {
+  int cmeasure_size = 0;
+  BOOST_FOREACH( ControlPoint const& cp, cnet ) {
+    cmeasure_size+=cp.size();
+  }
+  vw_out() << "  # Control Points   : " << cnet.size() << "\n";
+  vw_out() << "  # Control Measures : " << cmeasure_size << "\n";
 }
 
 struct ContainsEqualMeasure {
@@ -50,10 +61,24 @@ struct ContainsEqualMeasure {
   }
 };
 
+struct ContainsCloseMeasure {
+  Vector2 m_position;
+  double m_close;
+  ContainsCloseMeasure( Vector2 const& pos, double const& close ) : m_position(pos), m_close(close) {}
+
+  bool operator()( boost::shared_ptr<IPFeature> in ) {
+    if ( norm_2( Vector2(in->m_ip.x, in->m_ip.y) - m_position ) <= m_close )
+      return true;
+    return false;
+  }
+};
+
 struct Options {
   // Input
   std::string destination_cnet;
   std::vector<std::string> source_cnets;
+
+  double close;
 
   // Output
   std::string output_prefix;
@@ -64,6 +89,8 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   general_options.add_options()
     ("output-prefix,o", po::value(&opt.output_prefix)->default_value("merged"),
      "Output prefix for merge control network.")
+    ("close-px", po::value(&opt.close)->default_value(-1),
+     "Merge measurements are that are this pixel close. Leave -1 to only merge exact measurements." )
     ("help,h", "Display this help message");
 
   po::options_description positional("");
@@ -109,8 +136,10 @@ int main( int argc, char** argv ) {
     ControlNetwork dst_cnet("destination");
     dst_cnet.read_binary( opt.destination_cnet );
 
-    typedef std::map<std::string,int> dst_map_type;
-    dst_map_type dst_serial_to_cam_idx;
+    vw_out() << "Destination Control Network:\n";
+    print_cnet_statistics( dst_cnet );
+
+    std::map<std::string,int> dst_serial_to_cam_idx;
     int dst_max_cam_idx = -1;
     {
       float inc_amt = 1.0/float(dst_cnet.size());
@@ -136,6 +165,9 @@ int main( int argc, char** argv ) {
     BOOST_FOREACH( std::string const& source_cnet, opt.source_cnets ) {
       ControlNetwork src_cnet("source");
       src_cnet.read_binary( source_cnet );
+
+      vw_out() << "Input " << source_cnet << ":\n";
+      print_cnet_statistics( src_cnet );
 
       typedef std::map<int,std::string> src_map_type;
       src_map_type src_cam_idx_to_serial;
@@ -169,9 +201,16 @@ int main( int argc, char** argv ) {
                                     src_cam_idx_to_serial,
                                     dst_serial_to_cam_idx,
                                     dst_max_cam_idx );
-          f_itr dst_feature1 = std::find_if( dst_crn[dst_index1].begin(),
-                                             dst_crn[dst_index1].end(),
-                                             ContainsEqualMeasure(cm1->position()));
+          f_itr dst_feature1;
+          if ( opt.close < 0 ) {
+            dst_feature1 = std::find_if( dst_crn[dst_index1].begin(),
+                                         dst_crn[dst_index1].end(),
+                                         ContainsEqualMeasure(cm1->position()));
+          } else {
+            dst_feature1 = std::find_if( dst_crn[dst_index1].begin(),
+                                         dst_crn[dst_index1].end(),
+                                         ContainsCloseMeasure(cm1->position(),opt.close));
+          }
           if ( dst_feature1 == dst_crn[dst_index1].end() ) {
             dst_crn[dst_index1].relations.push_front( f_ptr( new IPFeature(*cm1,0, dst_index1) ));
             dst_feature1 = dst_crn[dst_index1].begin();
@@ -182,17 +221,24 @@ int main( int argc, char** argv ) {
                                       src_cam_idx_to_serial,
                                       dst_serial_to_cam_idx,
                                       dst_max_cam_idx );
-            f_itr dst_feature2 = std::find_if( dst_crn[dst_index2].begin(),
-                                               dst_crn[dst_index2].end(),
-                                               ContainsEqualMeasure(cm2->position()));
+            f_itr dst_feature2;
+            if ( opt.close < 0 ) {
+              dst_feature2 = std::find_if( dst_crn[dst_index2].begin(),
+                                           dst_crn[dst_index2].end(),
+                                           ContainsEqualMeasure(cm2->position()));
+            } else {
+              dst_feature2 = std::find_if( dst_crn[dst_index2].begin(),
+                                           dst_crn[dst_index2].end(),
+                                           ContainsCloseMeasure(cm2->position(),opt.close));
+            }
             if ( dst_feature2 == dst_crn[dst_index2].end() ) {
               dst_crn[dst_index2].relations.push_front( f_ptr( new IPFeature( *cm2, 0, dst_index2 )));
               dst_feature2 = dst_crn[dst_index2].begin();
             }
 
             // Doubly linking
-            (*dst_feature1)->connection( *dst_feature2, false );
-            (*dst_feature2)->connection( *dst_feature1, false );
+            (*dst_feature1)->connection( *dst_feature2, true );
+            (*dst_feature2)->connection( *dst_feature1, true );
 
             dst_index1 = dst_index2;
             dst_feature1 = dst_feature2;
@@ -204,6 +250,21 @@ int main( int argc, char** argv ) {
     }
 
     dst_crn.write_controlnetwork( dst_cnet );
+    vw_out() << "Output Control Network:\n";
+    print_cnet_statistics( dst_cnet );
+
+    // Re apply serial
+    std::map<int,std::string> reverse_dst;
+    for ( std::map<std::string,int>::iterator it = dst_serial_to_cam_idx.begin();
+          it != dst_serial_to_cam_idx.end(); it++ ) {
+      reverse_dst[it->second] = it->first;
+    }
+    BOOST_FOREACH( ControlPoint & cp, dst_cnet ) {
+      BOOST_FOREACH( ControlMeasure & cm, cp ) {
+        cm.set_serial( reverse_dst[cm.image_id()] );
+      }
+    }
+
     dst_cnet.write_binary(opt.output_prefix);
 
   } ASP_STANDARD_CATCHES;

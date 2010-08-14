@@ -94,8 +94,9 @@ int main( int argc, char** argv) {
 
     // Reading in cameras
     std::map<std::string,std::string> serial_to_name;
-    std::map<std::string,std::string> name_to_serial;
-    if ( opt.convert_serial_to_name ) {
+    std::map<std::string,int> serial_to_id;
+    if ( opt.convert_serial_to_name ||
+         opt.convert_isis ) {
       {
         TerminalProgressCallback tpc( "", "Loading Cameras:" );
         std::ifstream list_of_cubes(opt.camera_list_file.c_str());
@@ -110,15 +111,17 @@ int main( int argc, char** argv) {
 
         float inc_amt = 1.0/float(count);
         std::getline(list_of_cubes,buf);
+        count=0;
         while ( list_of_cubes.good() ) {
           tpc.report_incremental_progress(inc_amt);
           if ( buf != "" ) {
             IsisCameraModel cam(buf);
             std::string name = fs::path(buf).filename();
             serial_to_name[cam.serial_number()]=name;
-            name_to_serial[name]=cam.serial_number();
+            serial_to_id[  cam.serial_number()]=count;
           }
           std::getline(list_of_cubes,buf);
+          count++;
         }
         tpc.report_finished();
         list_of_cubes.close();
@@ -126,16 +129,17 @@ int main( int argc, char** argv) {
     }
 
     if ( opt.convert_isis ) {
+      // ISIS doesn't have camera IDs
+      // be sure to add them.
       BOOST_FOREACH( ControlPoint& cp, cnet ) {
         Vector3 position = cp.position();
         Vector3 xyz = cartography::lon_lat_radius_to_xyz( position );
         cp.set_position(xyz);
         BOOST_FOREACH( ControlMeasure& cm, cp ) {
-          if ( opt.convert_serial_to_name ) {
-            std::string serial = cm.serial();
-            std::string name = serial_to_name[serial];
-            cm.set_serial( name );
-          }
+          std::string serial = cm.serial();
+          if ( opt.convert_serial_to_name )
+            cm.set_serial( serial_to_name[serial] );
+          cm.set_image_id( serial_to_id[serial] );
           Vector2 px = cm.position();
           px -= Vector2(1,1);
           cm.set_position( px );

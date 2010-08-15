@@ -45,8 +45,7 @@ void print_cnet_statistics( ControlNetwork const& cnet ) {
   BOOST_FOREACH( ControlPoint const& cp, cnet ) {
     cmeasure_size+=cp.size();
   }
-  vw_out() << "  # Control Points   : " << cnet.size() << "\n";
-  vw_out() << "  # Control Measures : " << cmeasure_size << "\n";
+  vw_out() << "  CP : " << cnet.size() << "   CM : " << cmeasure_size << "\n";
 }
 
 struct ContainsEqualMeasure {

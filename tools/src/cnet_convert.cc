@@ -36,7 +36,6 @@ struct Options {
 void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("");
   general_options.add_options()
-    ("convert-isis", "Convert ISIS style cnet to VW style.")
     ("convert-serial-to-name", "Convert the serial numbers in cnet to filenames.")
     ("output-prefix,o", po::value(&opt.output_prefix)->default_value("converted"), "Output prefix for new control network.")
     ("help,h", "Display this help message");
@@ -70,8 +69,8 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
 
   if ( vm.count("help") )
     vw_throw( ArgumentErr() << usage.str() << general_options );
-  if ( !vm.count("cnet-file") || !vm.count("camera-list-file") )
-    vw_throw( ArgumentErr() << "Missing all of the required input files.\n"
+  if ( !vm.count("cnet-file") )
+    vw_throw( ArgumentErr() << "Missing required input file.\n"
               << usage.str() << general_options );
 }
 
@@ -82,21 +81,23 @@ int main( int argc, char** argv) {
     handle_arguments( argc, argv, opt );
 
     ControlNetwork cnet("input");
-    if ( opt.convert_isis ) {
+    if ( fs::path(opt.cnet_file).extension() == ".net" ) {
       // Convert ISIS style to VW style
       // We expect the input to be control network plus list of cameras
+      std::cout << "Reading ISIS Control Network: " << opt.cnet_file << " .. ";
       cnet.read_isis( opt.cnet_file );
     } else {
       // Convert VW style to ISIS
       // We expect the input to be control network plus list of cameras
+      std::cout << "Reading VW Control Network: " << opt.cnet_file << " .. ";
       cnet.read_binary( opt.cnet_file );
     }
+    std::cout << "done\n";
 
     // Reading in cameras
     std::map<std::string,std::string> serial_to_name;
     std::map<std::string,int> serial_to_id;
-    if ( opt.convert_serial_to_name ||
-         opt.convert_isis ) {
+    if ( opt.convert_serial_to_name ) {
       {
         TerminalProgressCallback tpc( "", "Loading Cameras:" );
         std::ifstream list_of_cubes(opt.camera_list_file.c_str());
@@ -128,9 +129,20 @@ int main( int argc, char** argv) {
       }
     }
 
-    if ( opt.convert_isis ) {
+    if ( fs::path(opt.cnet_file).extension() == ".net" ) {
       // ISIS doesn't have camera IDs
       // be sure to add them.
+      std::map<std::string,int> serial_to_id;
+      int count = 0;
+      BOOST_FOREACH( ControlPoint& cp, cnet ) {
+        BOOST_FOREACH( ControlMeasure& cm, cp ) {
+          if ( serial_to_id.find( cm.serial() ) == serial_to_id.end() ) {
+            serial_to_id[ cm.serial() ] = count;
+            count++;
+          }
+        }
+      }
+
       BOOST_FOREACH( ControlPoint& cp, cnet ) {
         Vector3 position = cp.position();
         Vector3 xyz = cartography::lon_lat_radius_to_xyz( position );

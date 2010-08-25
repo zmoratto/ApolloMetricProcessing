@@ -15,34 +15,6 @@ target_link_libraries( extract_clementine_gcp
                        ${LAPACK_LIBRARIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_clementine_gcp)
 
-# apollo to pinhole
-# - Converts an Apollo image to pinhole file
-if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
-  add_executable( apollo_to_pinhole apollo_to_pinhole.cc )
-  target_link_libraries( apollo_to_pinhole
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
-    ${StereoPipeline_LIBRARIES}
-    ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
-    ${QT_LIBRARIES})
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_to_pinhole)
-endif()
-
-# GCP from Control Network
-# - Converts an ISIS style to individual GCPs
-if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
-  add_executable( gcp_from_net gcp_from_net.cc )
-  target_link_libraries( gcp_from_net
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
-    ${StereoPipeline_LIBRARIES}
-    ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
-    ${QT_LIBRARIES})
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} gcp_from_net)
-endif()
-
 # VWIP Filter
 # - Remove IPs that are close to reseaus, this is specifically for Apollo
 add_executable( vwip_filter vwip_filter.cc )
@@ -79,26 +51,31 @@ target_link_libraries( bulk_match_unpack
   ${LAPACK_LIBRARIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} bulk_match_unpack )
 
-# CNET Convert
 if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
-  add_executable( cnet_convert cnet_convert.cc )
-  target_link_libraries( cnet_convert
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
-    ${StereoPipeline_LIBRARIES} )
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_convert)
-endif()
 
-# CNET Merge
-if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
-  add_executable( cnet_merge cnet_merge.cc )
-  target_link_libraries( cnet_merge
+  # apollo to pinhole
+  # - Converts an Apollo image to pinhole file
+  add_executable( apollo_to_pinhole apollo_to_pinhole.cc )
+  target_link_libraries( apollo_to_pinhole
     ${Boost_LIBRARIES}
     ${VisionWorkbench_LIBRARIES}
     ${LAPACK_LIBRARIES}
-    ${StereoPipeline_LIBRARIES} )
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_merge)
+    ${StereoPipeline_LIBRARIES}
+    ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
+    ${QT_LIBRARIES})
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_to_pinhole)
+
+  # GCP from Control Network
+  # - Converts an ISIS style to individual GCPs
+  add_executable( gcp_from_net gcp_from_net.cc )
+  target_link_libraries( gcp_from_net
+    ${Boost_LIBRARIES}
+    ${VisionWorkbench_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${StereoPipeline_LIBRARIES}
+    ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
+    ${QT_LIBRARIES})
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} gcp_from_net)
 
   # CNET USGS Conversion
   add_executable( cnet_usgs_conv cnet_usgs_conv.cc )

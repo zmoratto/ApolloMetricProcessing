@@ -9,6 +9,7 @@
 #include <vw/FileIO.h>
 #include <vw/Math.h>
 #include <vw/Mosaic/ImageComposite.h>
+#include <vw/Camera/CameraGeometry.h>
 #include "ransac.h"
 #include "ann_matcher.h"
 
@@ -29,6 +30,7 @@ int main(int argc, char** argv) {
   po::options_description general_options("Options");
   general_options.add_options()
     ("help,h", "Display this help message")
+    ("fundamental-matrix", "Use a fundamental matrix fitting")
     ("matcher-threshold,t", po::value<double>(&matcher_threshold)->default_value(0.6), "Threshold for the interest point matcher.");
 
   po::options_description hidden_options("");
@@ -93,17 +95,28 @@ int main(int argc, char** argv) {
       std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
       std::vector<int> indices;
       try {
-        // RANSAC is used to fit a transform between the matched sets
-        // of points.  Points that don't meet this geometric
-        // contstraint are rejected as outliers.
-        typedef math::HomographyFittingFunctor fit_func;
-        typedef math::InterestPointErrorMetric err_func;
-        math::RandomSampleConsensusMod<fit_func, err_func> ransac( fit_func(),
-                                                                   err_func(),
-                                                                   inlier_threshold ); // inlier_threshold
-        Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
-        std::cout << "\t--> Homography: " << H << "\n";
-        indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
+        if ( vm.count("fundamental-matrix") ) {
+          typedef camera::FundamentalMatrix8PFittingFunctor fit_func;
+          typedef camera::FundamentalMatrixDistanceErrorMetric err_func;
+          math::RandomSampleConsensus<fit_func, err_func> ransac( fit_func(),
+                                                                  err_func(),
+                                                                  5 );
+          Matrix<double> F(ransac(ransac_ip1,ransac_ip2));
+          std::cout << "\t--> Fundamental: " << F << "\n";
+          indices = ransac.inlier_indices(F,ransac_ip1,ransac_ip2);
+        } else {
+          // RANSAC is used to fit a transform between the matched sets
+          // of points.  Points that don't meet this geometric
+          // contstraint are rejected as outliers.
+          typedef math::HomographyFittingFunctor fit_func;
+          typedef math::InterestPointErrorMetric err_func;
+          math::RandomSampleConsensusMod<fit_func, err_func> ransac( fit_func(),
+                                                                     err_func(),
+                                                                     inlier_threshold ); // inlier_threshold
+          Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
+          std::cout << "\t--> Homography: " << H << "\n";
+          indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
+        }
       } catch (vw::math::RANSACErr &e) {
         std::cout << "RANSAC Failed: " << e.what() << "\n";
         continue;

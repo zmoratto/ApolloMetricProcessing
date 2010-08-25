@@ -99,6 +99,15 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
     ${LAPACK_LIBRARIES}
     ${StereoPipeline_LIBRARIES} )
   set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_merge)
+
+  # CNET USGS Conversion
+  add_executable( cnet_usgs_conv cnet_usgs_conv.cc )
+  target_link_libraries( cnet_usgs_conv
+    ${Boost_LIBRARIES}
+    ${VisionWorkbench_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${StereoPipeline_LIBRARIES} )
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_usgs_conv)
 endif()
 
 # Setup Installation

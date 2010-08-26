@@ -6,7 +6,7 @@ import os, glob, subprocess, sys, time
 from multiprocessing import Pool
 
 def job_func(cmd):
-    print "Running: "+cmd+"\n";
+    print "Running: "+cmd;
     os.system(cmd);
     return cmd;
 
@@ -97,7 +97,7 @@ if __name__ == '__main__':
                 stereo_cmds.append(stereo_cmd);
             elif (os.path.exists(cam1_alt) and os.path.exists(cam2_alt)):
                 # Building stereo command
-                stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1_alt+" "+cam2_alt+" "+full_prefix+" && touch "+full_prefix+"-completed.txt";
+                stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1_alt+" "+cam2_alt+" "+full_prefix+" -e 4 && touch "+full_prefix+"-completed.txt";
                 stereo_cmds.append(stereo_cmd);
             else:
                 # Building stereo command
@@ -143,7 +143,7 @@ if __name__ == '__main__':
                 orthoproject_cmds.append( orthoproject_cmd );
 
     # Creating work pool and processing
-    pool = Pool(processes=8)
+    pool = Pool(processes=7)
 
     print "--- Node "+str(my_node_number)+" processing STEREO ---\n";
     results = [pool.apply_async(job_func, (cmd,)) for cmd in stereo_cmds]
@@ -165,9 +165,9 @@ if __name__ == '__main__':
     for result in results:
         result.get() # No timeout
 
-    print "--- Node "+str(my_node_number)+" processing ORTHOPROJECT ---\n";
-    results = [pool.apply_async(job_func, (cmd,)) for cmd in orthoproject_cmds]
-    for result in results:
-        result.get() # No timeout
+    #print "--- Node "+str(my_node_number)+" processing ORTHOPROJECT ---\n";
+    #results = [pool.apply_async(job_func, (cmd,)) for cmd in orthoproject_cmds]
+    #for result in results:
+    #    result.get() # No timeout
 
     print "--- Node "+str(my_node_number)+" finished\n"

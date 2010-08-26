@@ -1,7 +1,7 @@
 #PBS -S /bin/bash
 #PBS -N a16_tri
-#PBS -l select=32:ncpus=8:mpiprocs=1:ompthreads=8:model=wes
-#PBS -l walltime=1:00:00
+#PBS -l select=32:ncpus=8:mpiprocs=1:ompthreads=8:model=har
+#PBS -l walltime=1:30:00
 #PBS -j oe
 #PBS -q normal
 #PBS -W group_list=e0859

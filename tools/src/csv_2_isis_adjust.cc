@@ -89,14 +89,14 @@ int main( int argc, char* argv[] ) {
     vw::camera::IsisCameraModel camera( cube );
     Vector3 objective = corrected_positions[cube];
     Vector3 delta = objective - camera.camera_center(Vector2());
-    asp::PolyEquation position(0);
-    position[0] = delta[0];
-    position[1] = delta[1];
-    position[2] = delta[2];
-    asp::PolyEquation pose(0);
+    boost::shared_ptr<asp::BaseEquation> position(new asp::PolyEquation (0));
+    (*position)[0] = delta[0];
+    (*position)[1] = delta[1];
+    (*position)[2] = delta[2];
+    boost::shared_ptr<asp::BaseEquation> pose(new asp::PolyEquation(0));
     std::ofstream adjust( fs::path( cube ).replace_extension( "isis_adjust" ).string().c_str() );
-    position.write( adjust );
-    pose.write( adjust );
+    write_equation( adjust, position );
+    write_equation( adjust, pose );
     adjust.close();
   }
 }

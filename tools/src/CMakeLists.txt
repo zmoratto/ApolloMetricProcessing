@@ -85,6 +85,15 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
     ${LAPACK_LIBRARIES}
     ${StereoPipeline_LIBRARIES} )
   set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_usgs_conv)
+
+  # CSV 2 ISIS ADJUST
+  add_executable( csv_2_isis_adjust csv_2_isis_adjust.cc )
+  target_link_libraries( csv_2_isis_adjust
+    ${Boost_LIBRARIES}
+    ${VisionWorkbench_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${StereoPipeline_LIBRARIES} )
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} csv_2_isis_adjust)
 endif()
 
 # Setup Installation

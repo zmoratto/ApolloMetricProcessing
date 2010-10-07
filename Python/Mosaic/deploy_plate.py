@@ -64,12 +64,12 @@ if __name__ == '__main__':
     if ( node_number == 0 ) :
         # Start spawning the server
         server_p = Process(target=server_process, args=(rabbitmq_go,finish_count,))
-        #rabbit_p = Process(target=cmd_process, args=("rabbitmq-server",))
-        #index_p  = Process(target=cmd_process, args=("index_server .",))
+        rabbit_p = Process(target=cmd_process, args=("rabbitmq-server",))
+        index_p  = Process(target=cmd_process, args=("index_server .",))
         server_p.start()
-        #rabbit_p.start()
+        rabbit_p.start()
         sleep(2)
-        #index_p.start()
+        index_p.start()
         sleep(0.5)
         rabbitmq_go.value = 1
 
@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
     # Starting image2plate jobs
     print hostname + " Running jobs!!!!!!!!!!"
-    #os.system("echo *.tif | xargs -n1 echo | awk '{if(NR%"+str(number_of_nodes)+"=="+str(node_number)+"){print}}' | xargs -n1 -P 8 image2plate -m equi --file tif -o pf://"+servername+"/index/test.plate")
+    os.system("echo *.tif | xargs -n1 echo | awk '{if(NR%"+str(number_of_nodes)+"=="+str(node_number)+"){print}}' | xargs -n1 -P 8 image2plate -m equi --file tif -o pf://"+servername+"/index/test.plate")
 
     # Phone home and say I'm finished
     if ( node_number != 0 ):
@@ -100,7 +100,7 @@ if __name__ == '__main__':
         while ( finish_count.value != number_of_nodes ):
             sleep(2)
         server_p.terminate()
-        #rabbit_p.terminate()
-        #index_p.terminate()
+        rabbit_p.terminate()
+        index_p.terminate()
 
     print "SCRIPT FINISHED"

@@ -25,22 +25,20 @@ if __name__ == '__main__':
     name_proc = subprocess.Popen("hostname",shell=True,stdout=subprocess.PIPE);
     my_node_name = name_proc.stdout.readline().strip();
 
-    print "My node name is: "+my_node_name;
-
     for i in range(4,len(sys.argv)):
         if ( sys.argv[i] == my_node_name ):
             my_node_number = i-4;
 
-    print "My node number is: "+str(my_node_number);
+    print my_node_name+": node number is: "+str(my_node_number);
 
     # Allow time for the jobs to start on all nodes
     time.sleep(1);
 
     task_number = my_node_number;
     number_of_tasks = len(sys.argv)-4;
-    print "Assigned task "+str(task_number)+"/"+str(number_of_tasks)+" of Job "+str(job_number)+"/"+str(number_of_jobs)
+    print my_node_name+": assigned task "+str(task_number)+"/"+str(number_of_tasks)+" of Job "+str(job_number)+"/"+str(number_of_jobs)
     name_proc = subprocess.Popen("which stereo",shell=True,stdout=subprocess.PIPE);
-    print "My stereo is: "+name_proc.stdout.readline().strip();
+    print my_node_name+": My stereo is: "+name_proc.stdout.readline().strip();
 
     os.chdir(sys.argv[1]);
 
@@ -62,7 +60,7 @@ if __name__ == '__main__':
     min_index = int((tasks_todo)*task_number/number_of_tasks);
     max_index = int((tasks_todo)*(task_number+1)/number_of_tasks);
 
-    print "My index range: "+str(jobs_min_index+min_index)+" - "+str(jobs_min_index+max_index)
+    print my_node_name+": My index range: "+str(jobs_min_index+min_index)+" - "+str(jobs_min_index+max_index)
 
     for i in range(jobs_min_index+min_index,jobs_min_index+max_index):
         startidx = files[i].find("-M-");
@@ -84,7 +82,6 @@ if __name__ == '__main__':
 
         # Double checking output file exists
         if (not(os.path.exists(output_dir))):
-            print "Creating "+output_dir
             os.system("mkdir "+output_dir)
 
         # Double checking that stereo was not perform correctly before
@@ -97,7 +94,7 @@ if __name__ == '__main__':
                 stereo_cmds.append(stereo_cmd);
             elif (os.path.exists(cam1_alt) and os.path.exists(cam2_alt)):
                 # Building stereo command
-                stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1_alt+" "+cam2_alt+" "+full_prefix+" -e 4 && touch "+full_prefix+"-completed.txt";
+                stereo_cmd = "stereo "+files[i]+" "+files[i+1]+" "+cam1_alt+" "+cam2_alt+" "+full_prefix+" && touch "+full_prefix+"-completed.txt";
                 stereo_cmds.append(stereo_cmd);
             else:
                 # Building stereo command
@@ -143,7 +140,7 @@ if __name__ == '__main__':
                 orthoproject_cmds.append( orthoproject_cmd );
 
     # Creating work pool and processing
-    pool = Pool(processes=7)
+    pool = Pool(processes=4)
 
     print "--- Node "+str(my_node_number)+" processing STEREO ---\n";
     results = [pool.apply_async(job_func, (cmd,)) for cmd in stereo_cmds]

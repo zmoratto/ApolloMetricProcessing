@@ -90,44 +90,6 @@ void read_isis_adjusted( std::string const& image_file,
 }
 
 Vector3 sphere_intersection( boost::shared_ptr<camera::CameraModel> cam,
-                             Vector2 const& query,
-                             cartography::Datum const& datum ) {
-  Vector3 p = cam->camera_center( query );
-  Vector3 d = cam->pixel_to_vector( query );
-
-  // Taken from:
-  //  siggraph.org/education/materials/HyperGraph/raytrace/rtinter1.htm
-  double b = 2*(d[0]*p[0]+d[1]*p[1]+d[2]*p[2]);
-  double c = norm_2_sqr(d) -
-    datum.semi_major_axis()*datum.semi_major_axis();
-  double discriminant = b*b-4*c;
-  if ( discriminant < 0 )
-    discriminant = -1.0;
-  double q;
-  if ( b < 0 )
-    q = (b + sqrt( discriminant ))*(-0.5);
-  else
-    q = (-b + sqrt( discriminant ))*0.5;
-
-  // Computing t0, t1;
-  double t0, t1;
-  t0 = q; t1 = c/q;
-
-  // making sure t0 and t1
-  if ( t0 > t1 )
-    std::swap( t0, t1 );
-
-  // Ray missed the target
-  if ( t1 < 0 )
-    return Vector3();
-  // Successful hits
-  if ( t0 < 0 )
-    return p+t1*d;
-  else
-    return p+t0*d;
-}
-
-Vector3 sphere_intersection2( boost::shared_ptr<camera::CameraModel> cam,
                               Vector2 const& query,
                               cartography::Datum const& datum ) {
   Vector3 c = -cam->camera_center( query ); // Sphere center
@@ -152,7 +114,7 @@ Vector3 sphere_intersection2( boost::shared_ptr<camera::CameraModel> cam,
 
 int main(int argc, char** argv) {
   Options opt;
-  //try {
+  try {
     handle_arguments( argc, argv, opt );
 
     // Reading Camera Models
@@ -221,7 +183,7 @@ int main(int argc, char** argv) {
     BOOST_FOREACH( ip::InterestPoint const& ip, ip1 ) {
       tpc.report_incremental_progress( inc_amt );
       Vector3 moon_intersect =
-        sphere_intersection2( cam1, Vector2(ip.x,ip.y), datum );
+        sphere_intersection( cam1, Vector2(ip.x,ip.y), datum );
       if ( moon_intersect == Vector3() ) {
         matched_index[count] = -1;
         count++;
@@ -334,7 +296,7 @@ int main(int argc, char** argv) {
     delete kdtree_ispace2;
     annClose();
 
-    //} ASP_STANDARD_CATCHES;
+  } ASP_STANDARD_CATCHES;
 
   return 0;
 };

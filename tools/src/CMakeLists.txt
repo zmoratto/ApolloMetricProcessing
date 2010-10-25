@@ -94,6 +94,16 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
     ${LAPACK_LIBRARIES}
     ${StereoPipeline_LIBRARIES} )
   set(PROGRAM_LISTING ${PROGRAM_LISTING} csv_2_isis_adjust)
+
+  # Apollo Guided Match
+  add_executable( apollo_guided_match apollo_guided_match.cc )
+  target_link_libraries( apollo_guided_match
+    ${Boost_LIBRARIES}
+    ${VisionWorkbench_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${StereoPipeline_LIBRARIES}
+    ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_guided_match)
 endif()
 
 # Setup Installation

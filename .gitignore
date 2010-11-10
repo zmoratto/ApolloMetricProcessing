@@ -23,6 +23,10 @@ tools/src/apollo_bulk_match
 tools/src/bulk_match_unpack
 tools/src/cnet_merge
 tools/src/cnet_convert
+tools/src/apollo_guided_match
+tools/src/cnet_usgs_conv
+tools/src/csv_2_isis_adjust
+tools/src/isis_adjust_2_csv
 
 tools/thirdparty/ann_1.1.2/lib
 tools/thirdparty/ann_1.1.2/src/*.o

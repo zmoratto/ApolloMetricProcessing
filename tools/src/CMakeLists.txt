@@ -95,6 +95,15 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
     ${StereoPipeline_LIBRARIES} )
   set(PROGRAM_LISTING ${PROGRAM_LISTING} csv_2_isis_adjust)
 
+  # ISIS ADJUST 2 CSV
+  add_executable( isis_adjust_2_csv isis_adjust_2_csv.cc )
+  target_link_libraries( isis_adjust_2_csv
+    ${Boost_LIBRARIES}
+    ${VisionWorkbench_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${StereoPipeline_LIBRARIES} )
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} isis_adjust_2_csv)
+
   # Apollo Guided Match
   add_executable( apollo_guided_match apollo_guided_match.cc )
   target_link_libraries( apollo_guided_match

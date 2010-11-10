@@ -1,5 +1,4 @@
 #include <vw/Core.h>
-#include <vw/Camera/PinholeModel.h>
 #include <boost/foreach.hpp>
 #include <asp/IsisIO.h>
 #include <boost/program_options.hpp>
@@ -9,7 +8,6 @@
 #include <boost/foreach.hpp>
 
 using namespace vw;
-using namespace camera;
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
@@ -37,7 +35,7 @@ int main( int argc, char* argv[] ) {
   po::notify( vm );
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << "[options] <image-files> ... " << std::endl << std::endl;
+  usage << "Usage: " << argv[0] << "[options] <csv file> <all input_images> ... " << std::endl << std::endl;
   usage << general_options << std::endl;
 
   if( vm.count("help") ) {

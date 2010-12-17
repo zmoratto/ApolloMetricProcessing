@@ -131,13 +131,16 @@ int main(int argc, char* argv[]) {
 
   // Loading IP files
   std::vector<InterestPoint> l_ip = read_binary_ip_file( vwip_file );
+  size_t ip_before = l_ip.size();
 
   // Load Image and Render Binary
   DiskImageView<PixelGray<uint8> > input( tif_file );
-  ImageView<PixelGray<uint8> > binary = per_pixel_filter( input, ThresholdFunc(20,235) );
+  ImageView<PixelGray<uint8> > binary = UnaryPerPixelView<DiskImageView<PixelGray<uint8> >, ThresholdFunc>( input, ThresholdFunc(20,235) );
 
+  std::cout << "Eroding\n";
   for ( uint i = 0; i < 3; i++ )
     erode(binary);
+  std::cout << "Dilating\n";
   for ( uint i = 0; i < 13; i++ )
     dilate(binary);
 
@@ -154,5 +157,6 @@ int main(int argc, char* argv[]) {
   std::list<InterestPoint> list;
   for ( uint i = 0; i < l_ip.size(); i++  )
     list.push_back(l_ip[i]);
+  std::cout << "Removed " << ip_before - list.size() << " ips. Output " << list.size() << " ips.\n";
   write_binary_ip_file(vwip_file, list);
 }

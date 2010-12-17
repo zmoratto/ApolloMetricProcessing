@@ -28,6 +28,7 @@ tools/src/cnet_usgs_conv
 tools/src/csv_2_isis_adjust
 tools/src/isis_adjust_2_csv
 tools/src/csv_2_match
+tools/src/ip_guided_match
 
 tools/thirdparty/ann_1.1.2/lib
 tools/thirdparty/ann_1.1.2/src/*.o

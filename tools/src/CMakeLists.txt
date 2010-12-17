@@ -43,6 +43,16 @@ target_link_libraries( apollo_match
   ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_match)
 
+# IP Guided Match
+# - Slightly smarter match that avoids impossible RANSAC fits.
+add_executable( ip_guided_match ip_guided_match.cc )
+target_link_libraries( ip_guided_match
+  ${Boost_LIBRARIES}
+  ${VisionWorkbench_LIBRARIES}
+  ${LAPACK_LIBRARIES}
+  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} ip_guided_match)
+
 # Apollo Bulk Match
 add_executable( apollo_bulk_match apollo_bulk_match.cc )
 target_link_libraries( apollo_bulk_match

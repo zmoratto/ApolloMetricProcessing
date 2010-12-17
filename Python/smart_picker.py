@@ -105,9 +105,9 @@ class App:
         ip2_size = unpack('Q',ip2_size_raw)[0]
         try:
             for i in range(0,ip1_size):
-                self.loaded_measurement1.append(self.read_ip(file))
+                self.loaded_measurement1.append(self.image1.scale*self.read_ip(file))
             for i in range(0,ip2_size):
-                self.loaded_measurement2.append(self.read_ip(file))
+                self.loaded_measurement2.append(self.image2.scale*self.read_ip(file))
         finally:
             file.close()
 
@@ -233,7 +233,10 @@ class App:
                 self.canvas.delete(i)
             if (len(self.measurement1) > 3):
                 self.transform = solve_affine(self.measurement1,
-                                              self.measurement2)
+                                         self.measurement2)
+                front = array([[self.image1.scale,0,0],[0,self.image1.scale,0],[0,0,1]])
+                back = array([[1/self.image2.scale,0,0],[0,1/self.image2.scale,0],[0,0,1]])
+                self.transform = dot(back,dot(self.transform,front))
                 mytext = "Transform: "+str(self.transform)
                 self.__tmp_objects.append(self.canvas.create_text([self.obj_width/2,50],text=mytext,fill="green",width=self.obj_width))
 

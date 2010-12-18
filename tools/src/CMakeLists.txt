@@ -53,6 +53,14 @@ target_link_libraries( ip_guided_match
   ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} ip_guided_match)
 
+# Homography_fit.cc
+add_executable( homography_fit homography_fit.cc )
+target_link_libraries( homography_fit
+  ${Boost_LIBRARIES}
+  ${VisionWorkbench_LIBRARIES}
+  ${LAPACK_LIBRARIES} )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} homography_fit)
+
 # Apollo Bulk Match
 add_executable( apollo_bulk_match apollo_bulk_match.cc )
 target_link_libraries( apollo_bulk_match

@@ -3,43 +3,9 @@
 from Tkinter import *
 import Image, ImageTk, sys, os
 from numpy import *
-from struct import *
 
-def solve_euclidean(meas1, meas2):
-    mean1 = array(meas1).sum(0) / 2.0
-    mean2 = array(meas2).sum(0) / 2.0
-
-    H = array([meas1[0]-mean1]).transpose()*(meas2[0]-mean2)
-    H = H + array([meas1[1]-mean1]).transpose()*(meas2[1]-mean2)
-
-    U, S, Vt = linalg.svd(H)
-    rotation = dot(transpose(Vt),transpose(U))
-    translation = mean2-dot(rotation,mean1)
-    output = identity(3,float)
-    output[0:2,0:2] = rotation
-    output[0:2,2] = translation
-    return output
-
-def solve_affine(meas1, meas2):
-    y = zeros((len(meas1)*2,1),float)
-    A = zeros((len(meas1)*2,6),float)
-
-    for i in range(0,len(meas1)):
-        for j in range(0,2):
-            row = i*2+j
-            A[row,0+j*3:2+j*3] = meas1[i]
-            A[row,2+j*3] = 1
-            y[row] = meas2[i][j]
-
-    x = linalg.lstsq(A,y)[0]
-
-    solution = identity(3,float)
-    solution[0,0:3] = x[0:3,0]
-    solution[1,0:3] = x[3:6,0]
-    return solution
-
-def solve_homography(meas1, meas2):
-    print "Hi"
+from FittingFunction import *
+from InterestIO import read_match_file, write_match_file
 
 class ReducedImage:
     def __init__(self, photoimage, scale):
@@ -54,6 +20,7 @@ class App:
         self.last_click = [-1,-1]
         self.__tmp_objects = []
         self.__match_draw_objects = []
+        self.__picked_objects = []
         self.__match_draw_mode = 0
         self.measurement1 = []
         self.measurement2 = []
@@ -80,36 +47,14 @@ class App:
         match = sys.argv[1][:sys.argv[1].rfind(".")] + "__" + sys.argv[2][:sys.argv[2].rfind(".")] + ".match"
         print "Match: ", match
         if ( os.path.exists(match) ):
-            self.load_match_file( match )
+            ip1, ip2 = read_match_file( match )
+            for ip in ip1:
+                self.loaded_measurement1.append(self.image1.scale*ip)
+            for ip in ip2:
+                self.loaded_measurement2.append(self.image2.scale*ip)
             self.draw_loaded_matches()
 
         self.canvas.pack()
-
-    def read_ip( self, file ):
-        # x = 4f,   y = 4f, ix = 4i, iy = 4i
-        # ori = 4f, s = 4f, in = 4f, bool = 1
-        # oc = 4u, sc = 4u, size = 8u, float array
-        ip_front_raw = file.read(29)
-        ip_back_raw  = file.read(16)
-        ip_front = unpack('ffiifff?',ip_front_raw)
-        ip_back  = unpack('IIQ',ip_back_raw)
-        file.read(ip_back[2]*4)
-        return array([ip_front[0], ip_front[1]])
-
-    def load_match_file(self, match_file):
-        print "Reading: ", match_file
-        file = open(match_file,"rb")
-        ip1_size_raw = file.read(8)
-        ip2_size_raw = file.read(8)
-        ip1_size = unpack('Q',ip1_size_raw)[0]
-        ip2_size = unpack('Q',ip2_size_raw)[0]
-        try:
-            for i in range(0,ip1_size):
-                self.loaded_measurement1.append(self.image1.scale*self.read_ip(file))
-            for i in range(0,ip2_size):
-                self.loaded_measurement2.append(self.image2.scale*self.read_ip(file))
-        finally:
-            file.close()
 
     def draw_loaded_matches(self):
         for i in self.__match_draw_objects:
@@ -148,8 +93,8 @@ class App:
         else:
             left = coord_b
             right = coord_a
-        self.draw_circle(left,1,"green")
-        self.draw_circle(right,1,"green")
+        self.__picked_objects.append(self.draw_circle(left,1,"green"))
+        self.__picked_objects.append(self.draw_circle(right,1,"green"))
         right[0] = right[0] - self.obj_width
         self.measurement1.append(array(left))
         self.measurement2.append(array(right))
@@ -166,9 +111,13 @@ class App:
         elif ( measurements == 2 ):
             transform = solve_euclidean(self.measurement1,
                                         self.measurement2)
-        else:
+        elif ( measurements == 3 ):
             transform = solve_affine(self.measurement1,
                                      self.measurement2)
+        else:
+            transform = solve_homography( self.measurement1,
+                                          self.measurement2 )
+
         prediction = array([0,0])
         if ( self.last_click[0] >= self.obj_width ):
             # Run backwards
@@ -189,11 +138,35 @@ class App:
 
     def key_press(self, event):
         if event.char == 's' or event.char == 'S':
-            output = sys.argv[1][:sys.argv[1].rfind(".")] + "__" + sys.argv[2][:sys.argv[2].rfind(".")] + ".csv"
-            f = open(output, 'w')
-            for i in range(0,len(self.measurement1)):
-                f.write(str(self.measurement1[i][0]/self.image1.scale)+","+str(self.measurement1[i][1]/self.image1.scale)+","+str(self.measurement2[i][0]/self.image2.scale)+","+str(self.measurement2[i][1]/self.image2.scale)+"\n")
-            f.close()
+            output = sys.argv[1][:sys.argv[1].rfind(".")] + "__" + sys.argv[2][:sys.argv[2].rfind(".")] + ".match"
+
+            # Combined loaded measurements to picked measurements
+            ip1 = []
+            ip2 = []
+            for ip in self.measurement1:
+                ip1.append(ip/self.image1.scale)
+            for ip in self.loaded_measurement1:
+                ip1.append(ip/self.image1.scale)
+            for ip in self.measurement2:
+                ip2.append(ip/self.image2.scale)
+            for ip in self.loaded_measurement2:
+                ip2.append(ip/self.image2.scale)
+            write_match_file(output,ip1,ip2)
+            for i in self.__picked_objects:
+                self.canvas.delete(i)
+            for i in self.__match_draw_objects:
+                self.canvas.delete(i)
+            self.measurement1 = []
+            self.measurement2 = []
+            self.loaded_measurement1 = []
+            self.loaded_measurement2 = []
+            ip1, ip2 = read_match_file( output )
+            for ip in ip1:
+                self.loaded_measurement1.append(self.image1.scale*ip)
+            for ip in ip2:
+                self.loaded_measurement2.append(self.image2.scale*ip)
+            self.draw_loaded_matches()
+
         elif event.char == 'q' or event.char == 'Q':
             print "Quit!"
             sys.exit()
@@ -203,13 +176,17 @@ class App:
         elif event.char == 'r' or event.char == 'R':
             self.loaded_measurement1 = []
             self.loaded_measurement2 = []
-            cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+sys.argv[1]+" "+sys.argv[2]+" --pass1 400"
+            cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+sys.argv[1]+" "+sys.argv[2]+" --pass1 100"
             print cmd
             os.system(cmd)
             match = sys.argv[1][:sys.argv[1].rfind(".")] + "__" + sys.argv[2][:sys.argv[2].rfind(".")] + ".match"
             print "Match: ", match
             if ( os.path.exists(match) ):
-                self.load_match_file( match )
+                ip1, ip2 = read_match_file( match )
+                for ip in ip1:
+                    self.loaded_measurement1.append(self.image1.scale*ip)
+                for ip in ip2:
+                    self.loaded_measurement2.append(self.image2.scale*ip)
                 self.draw_loaded_matches()
 
     def button1_click(self, event):
@@ -232,8 +209,8 @@ class App:
             for i in self.__tmp_objects:
                 self.canvas.delete(i)
             if (len(self.measurement1) > 3):
-                self.transform = solve_affine(self.measurement1,
-                                         self.measurement2)
+                self.transform = solve_homography(self.measurement1,
+                                                  self.measurement2)
                 front = array([[self.image1.scale,0,0],[0,self.image1.scale,0],[0,0,1]])
                 back = array([[1/self.image2.scale,0,0],[0,1/self.image2.scale,0],[0,0,1]])
                 self.transform = dot(back,dot(self.transform,front))

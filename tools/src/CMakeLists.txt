@@ -24,15 +24,6 @@ target_link_libraries( vwip_filter
                        ${LAPACK_LIBRARIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} vwip_filter)
 
-# CSV 2 MATCH
-add_executable( csv_2_match csv_2_match.cc )
-target_link_libraries( csv_2_match
-                       ${Boost_LIBRARIES}
-                       ${VisionWorkbench_LIBRARIES}
-                       ${LAPACK_LIBRARIES} )
-set(PROGRAM_LISTING ${PROGRAM_LISTING} csv_2_match)
-
-
 # Apollo Match
 # - Slightly smarter match that avoids impossible RANSAC fits.
 add_executable( apollo_match apollo_match.cc )

@@ -3,6 +3,7 @@
 *.log
 *.aux
 build
+*.pyc
 
 # Left overs from CMake
 tools/CMakeCache.txt
@@ -29,6 +30,7 @@ tools/src/csv_2_isis_adjust
 tools/src/isis_adjust_2_csv
 tools/src/csv_2_match
 tools/src/ip_guided_match
+tools/src/homography_fit
 
 tools/thirdparty/ann_1.1.2/lib
 tools/thirdparty/ann_1.1.2/src/*.o

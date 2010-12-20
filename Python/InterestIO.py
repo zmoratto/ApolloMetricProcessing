@@ -4,6 +4,36 @@
 
 from numpy import array
 from struct import *
+from copy import copy
+
+class ip:
+    def __init__(self, array_v, scale_v):
+        self.location = array_v
+        self.scale = scale_v
+    def __add__(self,other):
+        return ip(self.location+other,self.scale)
+    def __iadd__(self,other):
+        self.location = self.location + other
+    def __sub__(self,other):
+        return ip(self.location-other,self.scale)
+    def __isub__(self,other):
+        self.location = self.location - other
+    def __mul__(self,other):
+        return ip(self.location*other,self.scale*other)
+    def __imul__(self,other):
+        self.location = self.location * other
+        self.scale = self.scale * other
+    def __div__(self,other):
+        return ip(self.location/other,self.scale/other)
+    def __idiv__(self,other):
+        self.location = self.location / other
+        self.scale = self.scale / other
+    def __getitem__(self,key):
+        return self.location[key]
+    def __setitem__(self,key,value):
+        self.location[key] = value
+    def __str__(self):
+        return "Location: "+str(self.location)+"\nScale: "+str(self.scale)
 
 def read_ip( file ):
     # x = 4f,   y = 4f, ix = 4i, iy = 4i
@@ -14,11 +44,11 @@ def read_ip( file ):
     ip_front = unpack('ffiifff?',ip_front_raw)
     ip_back  = unpack('IIQ',ip_back_raw)
     file.read(ip_back[2]*4)
-    return array([ip_front[0], ip_front[1]])
+    return ip(array([ip_front[0], ip_front[1]]), ip_front[5])
 
 def write_ip( file, ip ):
     ip_front_raw = pack('ffiifff?', ip[0], ip[1], int(ip[0]), int(ip[1]),
-                        0, 0, 0, 1 )
+                        0, ip.scale, 0, 1 )
     ip_back_raw = pack('IIQ',0,0,0)
     file.write( ip_front_raw )
     file.write( ip_back_raw )

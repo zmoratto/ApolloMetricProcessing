@@ -5,7 +5,7 @@ import Image, ImageTk, sys, os
 from numpy import *
 
 from FittingFunction import *
-from InterestIO import read_match_file, write_match_file
+from InterestIO import read_match_file, write_match_file, ip
 
 class ReducedImage:
     def __init__(self, photoimage, scale):
@@ -48,10 +48,10 @@ class App:
         print "Match: ", match
         if ( os.path.exists(match) ):
             ip1, ip2 = read_match_file( match )
-            for ip in ip1:
-                self.loaded_measurement1.append(self.image1.scale*ip)
-            for ip in ip2:
-                self.loaded_measurement2.append(self.image2.scale*ip)
+            for i in ip1:
+                self.loaded_measurement1.append(i*self.image1.scale)
+            for i in ip2:
+                self.loaded_measurement2.append(i*self.image2.scale)
             self.draw_loaded_matches()
 
         self.canvas.pack()
@@ -96,8 +96,8 @@ class App:
         self.__picked_objects.append(self.draw_circle(left,1,"green"))
         self.__picked_objects.append(self.draw_circle(right,1,"green"))
         right[0] = right[0] - self.obj_width
-        self.measurement1.append(array(left))
-        self.measurement2.append(array(right))
+        self.measurement1.append(ip(array(left),5))
+        self.measurement2.append(ip(array(right),5))
 
     def predict_next_location(self):
         measurements = len(self.measurement1)
@@ -143,14 +143,14 @@ class App:
             # Combined loaded measurements to picked measurements
             ip1 = []
             ip2 = []
-            for ip in self.measurement1:
-                ip1.append(ip/self.image1.scale)
-            for ip in self.loaded_measurement1:
-                ip1.append(ip/self.image1.scale)
-            for ip in self.measurement2:
-                ip2.append(ip/self.image2.scale)
-            for ip in self.loaded_measurement2:
-                ip2.append(ip/self.image2.scale)
+            for i in self.measurement1:
+                ip1.append(i/self.image1.scale)
+            for i in self.loaded_measurement1:
+                ip1.append(i/self.image1.scale)
+            for i in self.measurement2:
+                ip2.append(i/self.image2.scale)
+            for i in self.loaded_measurement2:
+                ip2.append(i/self.image2.scale)
             write_match_file(output,ip1,ip2)
             for i in self.__picked_objects:
                 self.canvas.delete(i)
@@ -161,10 +161,10 @@ class App:
             self.loaded_measurement1 = []
             self.loaded_measurement2 = []
             ip1, ip2 = read_match_file( output )
-            for ip in ip1:
-                self.loaded_measurement1.append(self.image1.scale*ip)
-            for ip in ip2:
-                self.loaded_measurement2.append(self.image2.scale*ip)
+            for i in ip1:
+                self.loaded_measurement1.append(i*self.image1.scale)
+            for i in ip2:
+                self.loaded_measurement2.append(i*self.image2.scale)
             self.draw_loaded_matches()
 
         elif event.char == 'q' or event.char == 'Q':
@@ -183,10 +183,10 @@ class App:
             print "Match: ", match
             if ( os.path.exists(match) ):
                 ip1, ip2 = read_match_file( match )
-                for ip in ip1:
-                    self.loaded_measurement1.append(self.image1.scale*ip)
-                for ip in ip2:
-                    self.loaded_measurement2.append(self.image2.scale*ip)
+                for i in ip1:
+                    self.loaded_measurement1.append(i*self.image1.scale)
+                for i in ip2:
+                    self.loaded_measurement2.append(i*self.image2.scale)
                 self.draw_loaded_matches()
 
     def button1_click(self, event):

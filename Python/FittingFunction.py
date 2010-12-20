@@ -3,15 +3,21 @@
 # This is just a bunch of tools for solving for fitting transforms
 
 from numpy import *
-from InterestIO import write_match_file
+from InterestIO import write_match_file, ip
 import os, subprocess
 
 def solve_euclidean(meas1, meas2):
-    mean1 = array(meas1).sum(0) / 2.0
-    mean2 = array(meas2).sum(0) / 2.0
+    array1 = []
+    array2 = []
+    for i in meas1:
+        array1.append(i.location)
+    for i in meas2:
+        array2.append(i.location)
+    mean1 = array(array1).sum(0) / 2.0
+    mean2 = array(array2).sum(0) / 2.0
 
-    H = array([meas1[0]-mean1]).transpose()*(meas2[0]-mean2)
-    H = H + array([meas1[1]-mean1]).transpose()*(meas2[1]-mean2)
+    H = array([array1[0]-mean1]).transpose()*(array2[0]-mean2)
+    H = H + array([array1[1]-mean1]).transpose()*(array2[1]-mean2)
 
     U, S, Vt = linalg.svd(H)
     rotation = dot(transpose(Vt),transpose(U))
@@ -28,7 +34,7 @@ def solve_affine(meas1, meas2):
     for i in range(0,len(meas1)):
         for j in range(0,2):
             row = i*2+j
-            A[row,0+j*3:2+j*3] = meas1[i]
+            A[row,0+j*3:2+j*3] = meas1[i].location
             A[row,2+j*3] = 1
             y[row] = meas2[i][j]
 

@@ -13,7 +13,7 @@ class ReducedImage:
         self.scale = scale
 
 class App:
-    def __init__(self):
+    def __init__(self, image_name1, image_name2 ):
         self.root = Tk()
         self.obj_height = self.root.winfo_screenheight()
         self.obj_width  = self.root.winfo_screenwidth()/2
@@ -27,10 +27,12 @@ class App:
         self.loaded_measurement1 = []
         self.loaded_measurement2 = []
         self.transform = []
+        self.image_name1 = image_name1
+        self.image_name2 = image_name2
 
         # Loading up input images
-        self.image1 = self.load_image( sys.argv[1] )
-        self.image2 = self.load_image( sys.argv[2] )
+        self.image1 = self.load_image( image_name1 )
+        self.image2 = self.load_image( image_name2 )
 
         # Creating canvas, and drawing
         self.canvas = Canvas(self.root,
@@ -44,7 +46,7 @@ class App:
         self.root.bind("<Key>",self.key_press)
 
         # Check to see if a match file exists
-        match = sys.argv[1][:sys.argv[1].rfind(".")] + "__" + sys.argv[2][:sys.argv[2].rfind(".")] + ".match"
+        match = image_name1[:image_name1.rfind(".")] + "__" + image_name2[:image_name2.rfind(".")] + ".match"
         print "Match: ", match
         if ( os.path.exists(match) ):
             ip1, ip2 = read_match_file( match )
@@ -138,7 +140,7 @@ class App:
 
     def key_press(self, event):
         if event.char == 's' or event.char == 'S':
-            output = sys.argv[1][:sys.argv[1].rfind(".")] + "__" + sys.argv[2][:sys.argv[2].rfind(".")] + ".match"
+            output = self.image_name1[:self.image_name1.rfind(".")] + "__" + self.image_name2[:self.image_name2.rfind(".")] + ".match"
 
             # Combined loaded measurements to picked measurements
             ip1 = []
@@ -173,13 +175,19 @@ class App:
         elif event.char == 'm' or event.char == 'M':
             self.__match_draw_mode = (self.__match_draw_mode + 1 ) % 2
             self.draw_loaded_matches()
+        elif event.char == 'd' or event.char == 'D':
+            self.loaded_measurement1 = []
+            self.loaded_measurement2 = []
+            self.draw_loaded_matches()
+            output = self.image_name1[:self.image_name1.rfind(".")] + "__" + self.image_name2[:self.image_name2.rfind(".")] + ".match"
+            os.system("rm "+output)
         elif event.char == 'r' or event.char == 'R':
             self.loaded_measurement1 = []
             self.loaded_measurement2 = []
-            cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+sys.argv[1]+" "+sys.argv[2]+" --pass1 100"
+            cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+self.image_name1+" "+self.image_name2+" --pass1 100"
             print cmd
             os.system(cmd)
-            match = sys.argv[1][:sys.argv[1].rfind(".")] + "__" + sys.argv[2][:sys.argv[2].rfind(".")] + ".match"
+            match = self.image_name1[:self.image_name1.rfind(".")] + "__" + self.image_name2[:self.image_name2.rfind(".")] + ".match"
             print "Match: ", match
             if ( os.path.exists(match) ):
                 ip1, ip2 = read_match_file( match )
@@ -220,10 +228,17 @@ class App:
 
 def main():
     if not sys.argv[1:]:
-        print "Usage: python smart_picker.py filename filename"
+        print "Usage: python ", sys.argv[0], " filename filename"
+        print " or  : python ", sys.argv[0], " match_file_name (if input tif)"
 
-    smart_picker = App()
-    smart_picker.root.mainloop()
+    if len(sys.argv) == 2:
+        image1 = sys.argv[1].split("__")[0] + ".tif"
+        image2 = sys.argv[1].split("__")[1][:-5] + "tif"
+        smart_picker = App(image1,image2)
+        smart_picker.root.mainloop()
+    elif len(sys.argv) == 3:
+        smart_picker = App(sys.argv[1],sys.argv[2])
+        smart_picker.root.mainloop()
 
 if __name__ == "__main__":
     sys.exit(main())

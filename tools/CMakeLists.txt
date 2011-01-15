@@ -86,5 +86,6 @@ endif()
 
 # Subdirectories
 add_subdirectory(src)
+add_subdirectory(scripts)
 
 set(CMAKE_BUILD_TYPE Release)

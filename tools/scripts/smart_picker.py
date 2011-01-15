@@ -4,6 +4,9 @@ from Tkinter import *
 import Image, ImageTk, sys, os
 from numpy import *
 
+# Hack to use my modules
+sys.path.append( os.path.realpath(__file__)[:-19]+"libexec" )
+
 from FittingFunction import *
 from InterestIO import read_match_file, write_match_file, ip
 
@@ -228,8 +231,8 @@ class App:
 
 def main():
     if not sys.argv[1:]:
-        print "Usage: python ", sys.argv[0], " filename filename"
-        print " or  : python ", sys.argv[0], " match_file_name (if input tif)"
+        print "Usage: python smart_picker.py filename filename"
+        print " or  : python smart_picker.py match_file_name (if input tif)"
 
     if len(sys.argv) == 2:
         image1 = sys.argv[1].split("__")[0] + ".tif"

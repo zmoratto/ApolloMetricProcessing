@@ -26,6 +26,16 @@ target_link_libraries( homography_fit
   ${VW_DEPENDENCIES} )
 set(SUPPORT_LISTING ${SUPPORT_LISTING} homography_fit)
 
+if ( IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
+  # BA filter
+  add_executable( ba_filter ba_filter.cc )
+  target_link_libraries( ba_filter
+    ${VW_DEPENDENCIES}
+    ${StereoPipeline_LIBRARIES}
+    ${ISIS_LIBRARIES} ${CSPICE_LIBRARIES} ${QT_LIBRARIES} )
+  set(SUPPORT_LISTING ${SUPPORT_LISTING} ba_filter)
+endif()
+
 message("Installing  to LIBEXEC:")
 foreach( SUPPORT ${SUPPORT_LISTING} )
 

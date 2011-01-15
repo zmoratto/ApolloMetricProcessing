@@ -36,6 +36,7 @@ tools/scripts/CMakeFiles
 tools/scripts/*.cmake
 tools/scripts/ip_guided_match
 tools/scripts/homography_fit
+tools/scripts/ba_filter
 
 tools/thirdparty/ann_1.1.2/lib
 tools/thirdparty/ann_1.1.2/src/*.o

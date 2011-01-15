@@ -37,7 +37,7 @@ endif(APPLE)
 find_package(Boost REQUIRED
   COMPONENTS program_options system thread filesystem iostreams)
 find_package(VisionWorkbench REQUIRED
-  COMPONENTS core image math fileio camera interestpoint cartography bundleadjustment)
+  COMPONENTS core image math fileio camera interestpoint cartography bundleadjustment stereo)
 find_package(LAPACK-eigen)
 find_package(StereoPipeline
   COMPONENTS core isisio)

@@ -32,6 +32,7 @@ class App:
         self.transform = []
         self.image_name1 = image_name1
         self.image_name2 = image_name2
+        self.match_file = image_name1[:image_name1.rfind(".")] + "__" + image_name2[:image_name2.rfind(".")] + ".match"
 
         # Loading up input images
         self.image1 = self.load_image( image_name1 )
@@ -49,10 +50,9 @@ class App:
         self.root.bind("<Key>",self.key_press)
 
         # Check to see if a match file exists
-        match = image_name1[:image_name1.rfind(".")] + "__" + image_name2[:image_name2.rfind(".")] + ".match"
-        print "Match: ", match
-        if ( os.path.exists(match) ):
-            ip1, ip2 = read_match_file( match )
+        print "Match: ", self.match_file
+        if ( os.path.exists(self.match_file) ):
+            ip1, ip2 = read_match_file( self.match_file )
             for i in ip1:
                 self.loaded_measurement1.append(i*self.image1.scale)
             for i in ip2:
@@ -141,37 +141,72 @@ class App:
         else:
             self.__tmp_objects.append(self.draw_circle(prediction,20,"yellow"))
 
-    def key_press(self, event):
-        if event.char == 's' or event.char == 'S':
-            output = self.image_name1[:self.image_name1.rfind(".")] + "__" + self.image_name2[:self.image_name2.rfind(".")] + ".match"
+    def save_measurements( self ):
+        ip1 = []
+        ip2 = []
+        for i in self.measurement1:
+            ip1.append(i/self.image1.scale)
+        for i in self.loaded_measurement1:
+            ip1.append(i/self.image1.scale)
+        for i in self.measurement2:
+            ip2.append(i/self.image2.scale)
+        for i in self.loaded_measurement2:
+            ip2.append(i/self.image2.scale)
+        write_match_file(self.match_file,ip1,ip2)
+        for i in self.__picked_objects:
+            self.canvas.delete(i)
+        for i in self.__match_draw_objects:
+            self.canvas.delete(i)
+        self.measurement1 = []
+        self.measurement2 = []
+        self.loaded_measurement1 = []
+        self.loaded_measurement2 = []
+        ip1, ip2 = read_match_file( self.match_file )
+        for i in ip1:
+            self.loaded_measurement1.append(i*self.image1.scale)
+        for i in ip2:
+            self.loaded_measurement2.append(i*self.image2.scale)
+        self.draw_loaded_matches()
 
-            # Combined loaded measurements to picked measurements
-            ip1 = []
-            ip2 = []
-            for i in self.measurement1:
-                ip1.append(i/self.image1.scale)
-            for i in self.loaded_measurement1:
-                ip1.append(i/self.image1.scale)
-            for i in self.measurement2:
-                ip2.append(i/self.image2.scale)
-            for i in self.loaded_measurement2:
-                ip2.append(i/self.image2.scale)
-            write_match_file(output,ip1,ip2)
-            for i in self.__picked_objects:
-                self.canvas.delete(i)
-            for i in self.__match_draw_objects:
-                self.canvas.delete(i)
-            self.measurement1 = []
-            self.measurement2 = []
-            self.loaded_measurement1 = []
-            self.loaded_measurement2 = []
-            ip1, ip2 = read_match_file( output )
+    def delete_measurements( self ):
+        self.loaded_measurement1 = []
+        self.loaded_measurement2 = []
+        self.draw_loaded_matches()
+        os.system("rm "+self.match_file)
+
+    def transform_search_measurements( self ):
+        self.loaded_measurement1 = []
+        self.loaded_measurement2 = []
+        cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
+        cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+self.image_name1+" "+self.image_name2+" --pass1 100"
+        print cmd
+        os.system(cmd_path+cmd)
+        if ( os.path.exists(self.match_file) ):
+            ip1, ip2 = read_match_file( self.match_file )
             for i in ip1:
                 self.loaded_measurement1.append(i*self.image1.scale)
             for i in ip2:
                 self.loaded_measurement2.append(i*self.image2.scale)
             self.draw_loaded_matches()
 
+    def ba_filter_measurements( self ):
+        self.loaded_measurement1 = []
+        self.loaded_measurement2 = []
+        cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
+        cmd = "ba_filter --robust-sparse "+self.image_name1+" "+self.image_name2
+        print cmd
+        os.system(cmd_path+cmd)
+        if ( os.path.exists(self.match_file) ):
+            ip1, ip2 = read_match_file( self.match_file )
+            for i in ip1:
+                self.loaded_measurement1.append(i*self.image1.scale)
+            for i in ip2:
+                self.loaded_measurement2.append(i*self.image2.scale)
+            self.draw_loaded_matches()
+
+    def key_press(self, event):
+        if event.char == 's' or event.char == 'S':
+            self.save_measurements()
         elif event.char == 'q' or event.char == 'Q':
             print "Quit!"
             sys.exit()
@@ -179,27 +214,11 @@ class App:
             self.__match_draw_mode = (self.__match_draw_mode + 1 ) % 2
             self.draw_loaded_matches()
         elif event.char == 'd' or event.char == 'D':
-            self.loaded_measurement1 = []
-            self.loaded_measurement2 = []
-            self.draw_loaded_matches()
-            output = self.image_name1[:self.image_name1.rfind(".")] + "__" + self.image_name2[:self.image_name2.rfind(".")] + ".match"
-            os.system("rm "+output)
+            self.delete_measurements()
         elif event.char == 'r' or event.char == 'R':
-            self.loaded_measurement1 = []
-            self.loaded_measurement2 = []
-            cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
-            cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+self.image_name1+" "+self.image_name2+" --pass1 100"
-            print cmd
-            os.system(cmd_path+cmd)
-            match = self.image_name1[:self.image_name1.rfind(".")] + "__" + self.image_name2[:self.image_name2.rfind(".")] + ".match"
-            print "Match: ", match
-            if ( os.path.exists(match) ):
-                ip1, ip2 = read_match_file( match )
-                for i in ip1:
-                    self.loaded_measurement1.append(i*self.image1.scale)
-                for i in ip2:
-                    self.loaded_measurement2.append(i*self.image2.scale)
-                self.draw_loaded_matches()
+            self.transform_search_measurements()
+        elif event.char == 'f' or event.char == 'F':
+            self.ba_filter_measurements()
 
     def button1_click(self, event):
         # Button 1 callback

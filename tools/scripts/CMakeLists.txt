@@ -2,7 +2,35 @@
 install( FILES FittingFunction.py InterestIO.py smart_picker.py
   PERMISSIONS GROUP_READ OWNER_READ
   DESTINATION libexec )
-message( "smart_picker.py" )
+message( "\tsmart_picker.py" )
 install( FILES smart_picker.py
   PERMISSIONS GROUP_EXECUTE OWNER_EXECUTE OWNER_READ GROUP_READ
   DESTINATION bin )
+
+# Installing supporting executables
+include_directories(${ApolloMetricProcessing_SOURCE_DIR}/src)
+
+set(VW_DEPENDENCIES ${Boost_LIBRARIES} ${VisionWorkbench_LIBRARIES} ${LAPACK_LIBRARIES})
+
+# IP Guided Match
+# - Slightly smarter match that avoids impossible RANSAC fits.
+add_executable( ip_guided_match ip_guided_match.cc )
+target_link_libraries( ip_guided_match
+  ${VW_DEPENDENCIES}
+  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
+set(SUPPORT_LISTING ${SUPPORT_LISTING} ip_guided_match)
+
+# Homography_fit.cc
+add_executable( homography_fit homography_fit.cc )
+target_link_libraries( homography_fit
+  ${VW_DEPENDENCIES} )
+set(SUPPORT_LISTING ${SUPPORT_LISTING} homography_fit)
+
+message("Installing  to LIBEXEC:")
+foreach( SUPPORT ${SUPPORT_LISTING} )
+
+  message("\t" ${SUPPORT})
+  install( TARGETS ${SUPPORT}
+    DESTINATION libexec )
+
+endforeach( SUPPORT )

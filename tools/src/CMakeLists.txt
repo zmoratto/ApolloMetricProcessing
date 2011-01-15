@@ -3,6 +3,8 @@ include_directories(${ApolloMetricProcessing_SOURCE_DIR}/src)
 link_directories(${ApolloMetricProcessing_SOURCE_DIR}/src)
 message(STATUS "Adding ${ApolloMetricProcessing_SOURCE_DIR}/src")
 
+set(VW_DEPENDENCIES ${Boost_LIBRARIES} ${VisionWorkbench_LIBRARIES} ${LAPACK_LIBRARIES})
+
 # overlap_check_match
 # - An all in one executable for processing matches fresh
 
@@ -10,63 +12,35 @@ message(STATUS "Adding ${ApolloMetricProcessing_SOURCE_DIR}/src")
 # - Executable that registers images to clementine and the provides a gcp
 add_executable( extract_clementine_gcp extract_clementine_gcp.cc )
 target_link_libraries( extract_clementine_gcp
-                       ${Boost_LIBRARIES}
-                       ${VisionWorkbench_LIBRARIES}
-                       ${LAPACK_LIBRARIES} )
+                       ${VW_DEPENDENCIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_clementine_gcp)
 
 # VWIP Filter
 # - Remove IPs that are close to reseaus, this is specifically for Apollo
 add_executable( vwip_filter vwip_filter.cc )
 target_link_libraries( vwip_filter
-                       ${Boost_LIBRARIES}
-                       ${VisionWorkbench_LIBRARIES}
-                       ${LAPACK_LIBRARIES} )
+                       ${VW_DEPENDENCIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} vwip_filter)
 
 # Apollo Match
 # - Slightly smarter match that avoids impossible RANSAC fits.
 add_executable( apollo_match apollo_match.cc )
 target_link_libraries( apollo_match
-  ${Boost_LIBRARIES}
-  ${VisionWorkbench_LIBRARIES}
-  ${LAPACK_LIBRARIES}
+  ${VW_DEPENDENCIES}
   ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_match)
-
-# IP Guided Match
-# - Slightly smarter match that avoids impossible RANSAC fits.
-add_executable( ip_guided_match ip_guided_match.cc )
-target_link_libraries( ip_guided_match
-  ${Boost_LIBRARIES}
-  ${VisionWorkbench_LIBRARIES}
-  ${LAPACK_LIBRARIES}
-  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
-set(PROGRAM_LISTING ${PROGRAM_LISTING} ip_guided_match)
-
-# Homography_fit.cc
-add_executable( homography_fit homography_fit.cc )
-target_link_libraries( homography_fit
-  ${Boost_LIBRARIES}
-  ${VisionWorkbench_LIBRARIES}
-  ${LAPACK_LIBRARIES} )
-set(PROGRAM_LISTING ${PROGRAM_LISTING} homography_fit)
 
 # Apollo Bulk Match
 add_executable( apollo_bulk_match apollo_bulk_match.cc )
 target_link_libraries( apollo_bulk_match
-  ${Boost_LIBRARIES}
-  ${VisionWorkbench_LIBRARIES}
-  ${LAPACK_LIBRARIES}
+  ${VW_DEPENDENCIES}
   ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_bulk_match )
 
 # Bulk Match Unpack
 add_executable( bulk_match_unpack bulk_match_unpack.cc )
 target_link_libraries( bulk_match_unpack
-  ${Boost_LIBRARIES}
-  ${VisionWorkbench_LIBRARIES}
-  ${LAPACK_LIBRARIES} )
+  ${VW_DEPENDENCIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} bulk_match_unpack )
 
 if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
@@ -75,9 +49,7 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   # - Converts an Apollo image to pinhole file
   add_executable( apollo_to_pinhole apollo_to_pinhole.cc )
   target_link_libraries( apollo_to_pinhole
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
+    ${VW_DEPENDENCIES}
     ${StereoPipeline_LIBRARIES}
     ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
     ${QT_LIBRARIES})
@@ -87,9 +59,7 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   # - Converts an ISIS style to individual GCPs
   add_executable( gcp_from_net gcp_from_net.cc )
   target_link_libraries( gcp_from_net
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
+    ${VW_DEPENDENCIES}
     ${StereoPipeline_LIBRARIES}
     ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
     ${QT_LIBRARIES})
@@ -98,46 +68,37 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   # CNET USGS Conversion
   add_executable( cnet_usgs_conv cnet_usgs_conv.cc )
   target_link_libraries( cnet_usgs_conv
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
+    ${VW_DEPENDENCIES}
     ${StereoPipeline_LIBRARIES} )
   set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_usgs_conv)
 
   # CSV 2 ISIS ADJUST
   add_executable( csv_2_isis_adjust csv_2_isis_adjust.cc )
   target_link_libraries( csv_2_isis_adjust
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
+    ${VW_DEPENDENCIES}
     ${StereoPipeline_LIBRARIES} )
   set(PROGRAM_LISTING ${PROGRAM_LISTING} csv_2_isis_adjust)
 
   # ISIS ADJUST 2 CSV
   add_executable( isis_adjust_2_csv isis_adjust_2_csv.cc )
   target_link_libraries( isis_adjust_2_csv
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
+    ${VW_DEPENDENCIES}
     ${StereoPipeline_LIBRARIES} )
   set(PROGRAM_LISTING ${PROGRAM_LISTING} isis_adjust_2_csv)
 
   # Apollo Guided Match
   add_executable( apollo_guided_match apollo_guided_match.cc )
   target_link_libraries( apollo_guided_match
-    ${Boost_LIBRARIES}
-    ${VisionWorkbench_LIBRARIES}
-    ${LAPACK_LIBRARIES}
+    ${VW_DEPENDENCIES}
     ${StereoPipeline_LIBRARIES}
     ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
   set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_guided_match)
 endif()
 
-# Setup Installation
-message("Procesing:")
+message("Installing to BIN:")
 foreach( PROGRAM ${PROGRAM_LISTING} )
 
-  message(${PROGRAM})
+  message( "\t" ${PROGRAM})
   install( TARGETS ${PROGRAM}
     DESTINATION bin )
 

@@ -187,9 +187,10 @@ class App:
         elif event.char == 'r' or event.char == 'R':
             self.loaded_measurement1 = []
             self.loaded_measurement2 = []
+            cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
             cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+self.image_name1+" "+self.image_name2+" --pass1 100"
             print cmd
-            os.system(cmd)
+            os.system(cmd_path+cmd)
             match = self.image_name1[:self.image_name1.rfind(".")] + "__" + self.image_name2[:self.image_name2.rfind(".")] + ".match"
             print "Match: ", match
             if ( os.path.exists(match) ):

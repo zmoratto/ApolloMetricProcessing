@@ -46,8 +46,9 @@ def solve_affine(meas1, meas2):
     return solution
 
 def solve_homography(meas1, meas2):
+    cmd_path = os.path.realpath(__file__)[:-18]
     write_match_file("tmp.match",meas1,meas2)
-    p = subprocess.Popen("homography_fit tmp.match",
+    p = subprocess.Popen(cmd_path+"homography_fit tmp.match",
                          shell=True,stdout=subprocess.PIPE);
     cmd_return = p.stdout.readline().strip()
     text = cmd_return[cmd_return.find(":")+13:].strip("((").strip("))").replace(")(",",").split(",")

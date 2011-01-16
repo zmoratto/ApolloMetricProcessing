@@ -164,6 +164,7 @@ int main( int argc, char** argv ) {
   general_options.add_options()
     ("help,h", "Display this help message")
     ("robust-sparse", "Robust sparse")
+    ("dry-run", "Don't save the change")
     ("threshold,t", po::value(&threshold)->default_value(5), "Threshold in pixels for clipping");
 
   po::options_description hidden_options("");
@@ -263,27 +264,32 @@ int main( int argc, char** argv ) {
     fs::path(right_image).replace_extension("").string() + ".match";
   read_binary_match_file( output_filename, left_ip, right_ip );
 
-  // Clipping
-  size_t delete_count;
-  {
-    std::vector<double>::reverse_iterator error_it = errors.rbegin();
-    size_t index = errors.size()-1;
-    while( error_it != errors.rend() ) {
-      std::cout << "Error: " << *error_it << "\n";
-      if ( *error_it > threshold ) {
-        delete_count++;
-        IPVector::iterator l_it = left_ip.begin(), r_it = right_ip.begin();
-        l_it+=index;
-        r_it+=index;
-        left_ip.erase( l_it );
-        right_ip.erase( r_it );
+  // Clipping .. unfortunately we can't assume that the match file and
+  // the cnet have the same ordering.
+  size_t delete_count = 0;
+  for ( size_t cnet_index = 0; cnet_index < cnet->size(); cnet_index++ ) {
+    if ( errors[cnet_index] > threshold ) {
+      bool found = false;
+      for ( size_t ip_index = 0; ip_index < left_ip.size() && !found; ip_index++ ) {
+        Vector2 test( left_ip[ip_index].x, left_ip[ip_index].y );
+        if ( test == (*cnet)[cnet_index][0].position() ||
+             test == (*cnet)[cnet_index][1].position() ) {
+          delete_count++;
+          IPVector::iterator l_it = left_ip.begin(), r_it = right_ip.begin();
+          l_it += ip_index;
+          r_it += ip_index;
+          left_ip.erase( l_it ); right_ip.erase( r_it );
+          found = true;
+          break;
+        }
       }
-      error_it++;
-      index--;
+      if ( !found )
+        vw_out() << "Couldn't find measure to remove. WTF?\n";
     }
   }
   vw_out() << "Removed " << delete_count << " matches\n";
 
   // Writing back out
-  write_binary_match_file( output_filename, left_ip, right_ip );
+  if ( !vm.count("dry-run") )
+    write_binary_match_file( output_filename, left_ip, right_ip );
 }

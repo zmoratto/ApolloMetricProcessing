@@ -6,6 +6,7 @@
 #include <vw/InterestPoint.h>
 #include <vw/BundleAdjustment.h>
 #include <asp/IsisIO.h>
+#include <asp/Core/Macros.h>
 using namespace vw;
 using namespace vw::camera;
 
@@ -157,139 +158,143 @@ void do_ba( FilterBAModel& ba_model ) {
 }
 
 int main( int argc, char** argv ) {
-  std::string left_image, right_image;
-  double threshold;
 
-  po::options_description general_options("Options");
-  general_options.add_options()
-    ("help,h", "Display this help message")
-    ("robust-sparse", "Robust sparse")
-    ("dry-run", "Don't save the change")
-    ("threshold,t", po::value(&threshold)->default_value(5), "Threshold in pixels for clipping");
-
-  po::options_description hidden_options("");
-  hidden_options.add_options()
-    ("left-image", po::value(&left_image))
-    ("right-image", po::value(&right_image));
-
-  po::options_description options("Allowed Options");
-  options.add(general_options).add(hidden_options);
-
-  po::positional_options_description p;
-  p.add("left-image", 1);
-  p.add("right-image", 1);
-
-  std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [options] <left image> <right image>...\n\n";
-  usage << general_options << std::endl;
-
-  po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
-    po::notify( vm );
-  } catch (po::error &e) {
-    std::cout << "An error occured while parsing command line arguments.\n";
-    std::cout << "\t" << e.what() << "\n\n";
-    std::cout << usage.str();
-    return 1;
-  }
+    std::string left_image, right_image;
+    double threshold;
 
-  if( vm.count("help") ) {
-    vw_out() << usage.str();
-    return 1;
-  }
+    po::options_description general_options("Options");
+    general_options.add_options()
+      ("help,h", "Display this help message")
+      ("robust-sparse", "Robust sparse")
+      ("dry-run", "Don't save the change")
+      ("threshold,t", po::value(&threshold)->default_value(5), "Threshold in pixels for clipping");
 
-  if (left_image.empty() || right_image.empty() ) {
-    vw_out() << "Error:o Must specify both input files!\n\n";
-    vw_out() << usage.str();
-    return 1;
-  }
+    po::options_description hidden_options("");
+    hidden_options.add_options()
+      ("left-image", po::value(&left_image))
+      ("right-image", po::value(&right_image));
 
-  // Replace extensions to cube files
-  left_image = fs::path(left_image).replace_extension("cub").string();
-  right_image = fs::path(right_image).replace_extension("cub").string();
+    po::options_description options("Allowed Options");
+    options.add(general_options).add(hidden_options);
 
-  // Loading the camera models.
-  std::vector< boost::shared_ptr<CameraModel> > camera_models;
-  std::vector< std::string > input_names;
-  {
-    boost::shared_ptr<asp::BaseEquation> posF( new asp::PolyEquation( 0 ) );
-    boost::shared_ptr<asp::BaseEquation> poseF( new asp::PolyEquation( 0 ) );
-    boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( left_image,
-                                                                 posF, poseF ));
-    camera_models.push_back(p);
-    input_names.push_back( left_image );
-  }
-  {
-    boost::shared_ptr<asp::BaseEquation> posF( new asp::PolyEquation( 0 ) );
-    boost::shared_ptr<asp::BaseEquation> poseF( new asp::PolyEquation( 0 ) );
-    boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( right_image,
-                                                                 posF, poseF ));
-    camera_models.push_back(p);
-    input_names.push_back( right_image );
-  }
+    po::positional_options_description p;
+    p.add("left-image", 1);
+    p.add("right-image", 1);
 
-  // Creating Control Network
-  boost::shared_ptr<ba::ControlNetwork> cnet( new ba::ControlNetwork("ba_filter") );
-  ba::build_control_network( *cnet, camera_models, input_names, 5 );
+    std::ostringstream usage;
+    usage << "Usage: " << argv[0] << " [options] <left image> <right image>...\n\n";
+    usage << general_options << std::endl;
 
-  VW_ASSERT( cnet->size() != 0, vw::IOErr() << "No matches loaded" );
-
-  // Creating Model
-  FilterBAModel ba_model( camera_models, cnet );
-
-  if ( vm.count("robust-sparse") )
-    do_ba<ba::AdjustRobustSparse< FilterBAModel, ba::L2Error> >( ba_model );
-  else
-    do_ba<ba::AdjustSparse< FilterBAModel, ba::L2Error> >( ba_model );
-
-  // Writing out current errors
-  std::vector<double> errors( cnet->size() );
-  std::fill( errors.begin(), errors.end(), 0 );
-  for ( size_t i = 0; i < cnet->size(); i++ ) {
-    BOOST_FOREACH( ba::ControlMeasure& cm, (*cnet)[i] ) {
-      Vector2 reprojection = ba_model( i, cm.image_id(),
-                                       ba_model.A_parameters( cm.image_id() ),
-                                       ba_model.B_parameters( i ) );
-      errors[i] += norm_2( reprojection - cm.position() );
+    po::variables_map vm;
+    try {
+      po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
+      po::notify( vm );
+    } catch (po::error &e) {
+      std::cout << "An error occured while parsing command line arguments.\n";
+      std::cout << "\t" << e.what() << "\n\n";
+      std::cout << usage.str();
+      return 1;
     }
-    errors[i] /= (*cnet)[i].size();
-  }
 
-  // Loading interest points
-  typedef std::vector< ip::InterestPoint > IPVector;
-  IPVector left_ip, right_ip;
-  std::string output_filename =
-    fs::path(left_image).replace_extension("").string() + "__" +
-    fs::path(right_image).replace_extension("").string() + ".match";
-  read_binary_match_file( output_filename, left_ip, right_ip );
+    if( vm.count("help") ) {
+      vw_out() << usage.str();
+      return 1;
+    }
 
-  // Clipping .. unfortunately we can't assume that the match file and
-  // the cnet have the same ordering.
-  size_t delete_count = 0;
-  for ( size_t cnet_index = 0; cnet_index < cnet->size(); cnet_index++ ) {
-    if ( errors[cnet_index] > threshold ) {
-      bool found = false;
-      for ( size_t ip_index = 0; ip_index < left_ip.size() && !found; ip_index++ ) {
-        Vector2 test( left_ip[ip_index].x, left_ip[ip_index].y );
-        if ( test == (*cnet)[cnet_index][0].position() ||
-             test == (*cnet)[cnet_index][1].position() ) {
-          delete_count++;
-          IPVector::iterator l_it = left_ip.begin(), r_it = right_ip.begin();
-          l_it += ip_index;
-          r_it += ip_index;
-          left_ip.erase( l_it ); right_ip.erase( r_it );
-          found = true;
-          break;
-        }
+    if (left_image.empty() || right_image.empty() ) {
+      vw_out() << "Error:o Must specify both input files!\n\n";
+      vw_out() << usage.str();
+      return 1;
+    }
+
+    // Replace extensions to cube files
+    left_image = fs::path(left_image).replace_extension("cub").string();
+    right_image = fs::path(right_image).replace_extension("cub").string();
+
+    // Loading the camera models.
+    std::vector< boost::shared_ptr<CameraModel> > camera_models;
+    std::vector< std::string > input_names;
+    {
+      boost::shared_ptr<asp::BaseEquation> posF( new asp::PolyEquation( 0 ) );
+      boost::shared_ptr<asp::BaseEquation> poseF( new asp::PolyEquation( 0 ) );
+      boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( left_image,
+                                                                   posF, poseF ));
+      camera_models.push_back(p);
+      input_names.push_back( left_image );
+    }
+    {
+      boost::shared_ptr<asp::BaseEquation> posF( new asp::PolyEquation( 0 ) );
+      boost::shared_ptr<asp::BaseEquation> poseF( new asp::PolyEquation( 0 ) );
+      boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( right_image,
+                                                                   posF, poseF ));
+      camera_models.push_back(p);
+      input_names.push_back( right_image );
+    }
+
+    // Creating Control Network
+    boost::shared_ptr<ba::ControlNetwork> cnet( new ba::ControlNetwork("ba_filter") );
+    ba::build_control_network( *cnet, camera_models, input_names, 5 );
+
+    VW_ASSERT( cnet->size() != 0, vw::IOErr() << "No matches loaded" );
+
+    // Creating Model
+    FilterBAModel ba_model( camera_models, cnet );
+
+    if ( vm.count("robust-sparse") )
+      do_ba<ba::AdjustRobustSparse< FilterBAModel, ba::L2Error> >( ba_model );
+    else
+      do_ba<ba::AdjustSparse< FilterBAModel, ba::L2Error> >( ba_model );
+
+    // Writing out current errors
+    std::vector<double> errors( cnet->size() );
+    std::fill( errors.begin(), errors.end(), 0 );
+    for ( size_t i = 0; i < cnet->size(); i++ ) {
+      BOOST_FOREACH( ba::ControlMeasure& cm, (*cnet)[i] ) {
+        Vector2 reprojection = ba_model( i, cm.image_id(),
+                                         ba_model.A_parameters( cm.image_id() ),
+                                         ba_model.B_parameters( i ) );
+        errors[i] += norm_2( reprojection - cm.position() );
       }
-      if ( !found )
-        vw_out() << "Couldn't find measure to remove. WTF?\n";
+      errors[i] /= (*cnet)[i].size();
     }
-  }
-  vw_out() << "Removed " << delete_count << " matches\n";
 
-  // Writing back out
-  if ( !vm.count("dry-run") )
-    write_binary_match_file( output_filename, left_ip, right_ip );
+    // Loading interest points
+    typedef std::vector< ip::InterestPoint > IPVector;
+    IPVector left_ip, right_ip;
+    std::string output_filename =
+      fs::path(left_image).replace_extension("").string() + "__" +
+      fs::path(right_image).replace_extension("").string() + ".match";
+    read_binary_match_file( output_filename, left_ip, right_ip );
+
+    // Clipping .. unfortunately we can't assume that the match file and
+    // the cnet have the same ordering.
+    size_t delete_count = 0;
+    for ( size_t cnet_index = 0; cnet_index < cnet->size(); cnet_index++ ) {
+      if ( errors[cnet_index] > threshold ) {
+        bool found = false;
+        for ( size_t ip_index = 0; ip_index < left_ip.size() && !found; ip_index++ ) {
+          Vector2 test( left_ip[ip_index].x, left_ip[ip_index].y );
+          if ( test == (*cnet)[cnet_index][0].position() ||
+               test == (*cnet)[cnet_index][1].position() ) {
+            delete_count++;
+            IPVector::iterator l_it = left_ip.begin(), r_it = right_ip.begin();
+            l_it += ip_index;
+            r_it += ip_index;
+            left_ip.erase( l_it ); right_ip.erase( r_it );
+            found = true;
+            break;
+          }
+        }
+        if ( !found )
+          vw_out() << "Couldn't find measure to remove. WTF?\n";
+      }
+    }
+    vw_out() << "Removed " << delete_count << " matches\n";
+
+    // Writing back out
+    if ( !vm.count("dry-run") )
+      write_binary_match_file( output_filename, left_ip, right_ip );
+  } ASP_STANDARD_CATCHES;
+
 }

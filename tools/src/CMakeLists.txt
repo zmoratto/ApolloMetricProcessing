@@ -43,6 +43,12 @@ target_link_libraries( bulk_match_unpack
   ${VW_DEPENDENCIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} bulk_match_unpack )
 
+# IP Disparity
+add_executable( ip_disparity ip_disparity.cc )
+target_link_libraries( ip_disparity
+  ${VW_DEPENDENCIES} )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} ip_disparity )
+
 if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
 
   # apollo to pinhole

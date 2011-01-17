@@ -69,16 +69,16 @@ int main(int argc, char** argv) {
   read_binary_match_file( output_filename, left_ip, right_ip );
 
   // Producing the KrigingView
-  typedef std::pair<Vector2, Vector2> pair_list;
+  typedef std::pair<Vector2f, Vector2f> pair_list;
   std::list<pair_list > samples;
   for ( size_t i = 0; i < left_ip.size(); i++ ) {
-    Vector2 lloc( left_ip[i].x, left_ip[i].y ),
+    Vector2f lloc( left_ip[i].x, left_ip[i].y ),
       rloc( right_ip[i].x, right_ip[i].y );
     samples.push_back( pair_list(lloc,rloc-lloc) );
   }
   DiskImageView<PixelGray<uint8> > image( right );
-  KrigingView<Vector2> disparity( samples,
-                                  BBox2i(0,0,image.cols(),image.rows()) );
+  KrigingView<Vector2f> disparity( samples,
+                                   BBox2i(0,0,image.cols(),image.rows()) );
   ImageViewRef<PixelMask<Vector2f> > pdisparity =
     pixel_cast<PixelMask<Vector2f> >( disparity );
   ImageViewRef<PixelGray<uint8> > right_transformed =

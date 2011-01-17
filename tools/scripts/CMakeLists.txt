@@ -26,6 +26,13 @@ target_link_libraries( homography_fit
   ${VW_DEPENDENCIES} )
 set(SUPPORT_LISTING ${SUPPORT_LISTING} homography_fit)
 
+# Kriging Guided Match
+add_executable( kriging_guided_match kriging_guided_match.cc )
+target_link_libraries( kriging_guided_match
+  ${VW_DEPENDENCIES}
+  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
+set(SUPPORT_LISTING ${SUPPORT_LISTING} kriging_guided_match)
+
 if ( IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   # BA filter
   add_executable( ba_filter ba_filter.cc )

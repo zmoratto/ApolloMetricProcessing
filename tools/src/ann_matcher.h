@@ -2,6 +2,7 @@
 #ifndef __ANN_MATCHER_H__
 #define __ANN_MATCHER_H__
 
+#include <boost/foreach.hpp>
 #include <vw/InterestPoint/Matcher.h>
 #include <ANN/ANN.h>
 

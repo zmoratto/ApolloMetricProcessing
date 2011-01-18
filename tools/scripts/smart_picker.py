@@ -174,13 +174,9 @@ class App:
         self.draw_loaded_matches()
         os.system("rm "+self.match_file)
 
-    def transform_search_measurements( self ):
+    def reload_measurements( self ):
         self.loaded_measurement1 = []
         self.loaded_measurement2 = []
-        cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
-        cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+self.image_name1+" "+self.image_name2+" --pass1 100"
-        print cmd
-        os.system(cmd_path+cmd)
         if ( os.path.exists(self.match_file) ):
             ip1, ip2 = read_match_file( self.match_file )
             for i in ip1:
@@ -189,20 +185,32 @@ class App:
                 self.loaded_measurement2.append(i*self.image2.scale)
             self.draw_loaded_matches()
 
+    def transform_search_measurements( self ):
+        cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
+        cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+self.image_name1+" "+self.image_name2+" --pass1 100"
+        print cmd
+        os.system(cmd_path+cmd)
+        self.reload_measurements()
+
     def ba_filter_measurements( self ):
-        self.loaded_measurement1 = []
-        self.loaded_measurement2 = []
         cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
         cmd = "ba_filter --robust-sparse "+self.image_name1+" "+self.image_name2
         print cmd
         os.system(cmd_path+cmd)
-        if ( os.path.exists(self.match_file) ):
-            ip1, ip2 = read_match_file( self.match_file )
-            for i in ip1:
-                self.loaded_measurement1.append(i*self.image1.scale)
-            for i in ip2:
-                self.loaded_measurement2.append(i*self.image2.scale)
-            self.draw_loaded_matches()
+        self.reload_measurements()
+
+    def kriging_search_measurements( self ):
+        cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
+        cmd = "kriging_guided_match -s 5 "+self.image_name1+" "+self.image_name2
+        print cmd
+        os.system(cmd_path+cmd)
+        self.reload_measurements()
+
+    def equalize_measurements( self ):
+        cmd = "reduce_match -n5 -m25 "+self.match_file
+        print cmd
+        os.system(cmd)
+        self.reload_measurements()
 
     def key_press(self, event):
         if event.char == 's' or event.char == 'S':
@@ -219,6 +227,10 @@ class App:
             self.transform_search_measurements()
         elif event.char == 'f' or event.char == 'F':
             self.ba_filter_measurements()
+        elif event.char == 'k' or event.char == 'K':
+            self.kriging_search_measurements()
+        elif event.char == 'e' or event.char == 'E':
+            self.equalize_measurements()
 
     def button1_click(self, event):
         # Button 1 callback

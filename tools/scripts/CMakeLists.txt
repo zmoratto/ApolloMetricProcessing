@@ -1,5 +1,5 @@
 # Installing python smart picker scripts
-install( FILES FittingFunction.py InterestIO.py smart_picker.py
+install( FILES FittingFunction.py InterestIO.py
   PERMISSIONS GROUP_READ OWNER_READ
   DESTINATION libexec )
 message( "\tsmart_picker.py" )

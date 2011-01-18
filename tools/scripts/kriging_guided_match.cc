@@ -47,6 +47,8 @@ void do_guided_search() {
     fs::path(right).replace_extension("").string() + ".match";
   if (!fs::exists(match_filename))
     vw_throw( ArgumentErr() << "Input images don't already have matches to seed the search." );
+  ip::read_binary_match_file(match_filename, matched_ip1, matched_ip2);
+  vw_out() << "Read " << matched_ip1.size() << " matches from match file.\n";
 
   // Loading up VWIP and removing already matched ips
   IPVector vwip_ip1, vwip_ip2;
@@ -54,6 +56,7 @@ void do_guided_search() {
   vwip_ip2 = ip::read_binary_ip_file(fs::path(right).replace_extension("vwip").string() );
   filter_vwip( vwip_ip1, matched_ip1 );
   filter_vwip( vwip_ip2, matched_ip2 );
+  vw_out() << "Found " << vwip_ip1.size() << " and " << vwip_ip2.size() << " point remaining to be matched.\n";
 
   // Producing Kriging
   typedef std::pair<Vector2f, Vector2f> pair_type;

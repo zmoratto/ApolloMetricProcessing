@@ -49,17 +49,17 @@ int main( int argc, char* argv[] ) {
 
   BOOST_FOREACH( std::string const& input, input_file_names ) {
     IsisCameraModel isis_model( input );
-    std::cout << "Loaded " << input << " :\n" << isis_model << "\n";
+    vw_out() << "Loaded " << input << " :\n" << isis_model << "\n";
     std::string serial = isis_model.serial_number();
 
-    VW_ASSERT( isis_model.lines() == 5725 &&
-               isis_model.samples() == 5725,
-               IOErr() << "Input camera appears to be of wrong resolution. This code was only proved to work with images that were 5725^2 in size." );
+    double pixel_scalar = 22900/isis_model.lines();
+    double PRINCIPAL_POINT_MM = (11450.5-1-pixel_scalar*0.5)/200;
 
     PinholeModel pin;
     if ( boost::contains(serial,"APOLLO15") ) {
-      std::cout << "\tApollo 15 Image\n";
+      vw_out() << "\tApollo 15 Image\n";
 
+      /* This is from a fitting adjustable TSAI
       double distort[6] = {0.007646500298509824,-0.01743067138801845,0.00980946292640812,-2.98092556225311e-05,-1.339089765674149e-05,-1.221974557659228e-05};
       VectorProxy<double,6> distort_v(distort);
       pin = PinholeModel( isis_model.camera_center(),
@@ -69,9 +69,20 @@ int main( int argc, char* argv[] ) {
       pin.set_coordinate_frame( pin.coordinate_frame_u_direction(),
                                 -pin.coordinate_frame_v_direction(),
                                 pin.coordinate_frame_w_direction() );
+      */
+      pin = PinholeModel( isis_model.camera_center(),
+                          isis_model.camera_pose().rotation_matrix(),
+                          76.054, 76.054, PRINCIPAL_POINT_MM, PRINCIPAL_POINT_MM,
+                          BrownConradyDistortion(Vector2(-0.006,-0.002),
+                                                 Vector3(-.13361854e-5,
+                                                         0.52261757e-9,
+                                                         -0.50728336e-13),
+                                                 Vector2(-.54958195e-6,
+                                                         -.46089420e-10),
+                                                 2.9659070) );
     } else if ( boost::contains(serial,"APOLLO16") ) {
-      std::cout << "\tApollo 16 Image\n";
-
+      vw_out() << "\tApollo 16 Image\n";
+      /*
       double distort[6] = {0.007872316259470486,-0.01786199111078625,0.01016057676230708,5.272930530615576e-06,1.033098038016087e-05,-5.993217765157361e-06};
       VectorProxy<double,6> distort_v(distort);
       pin = PinholeModel( isis_model.camera_center(),
@@ -81,29 +92,35 @@ int main( int argc, char* argv[] ) {
       pin.set_coordinate_frame( pin.coordinate_frame_u_direction(),
                                 -pin.coordinate_frame_v_direction(),
                                 pin.coordinate_frame_w_direction() );
-
-    } else if ( boost::contains(serial,"APOLLO17") ) {
-      // WARNING!
-      //
-      // APOLLO 17 MODEL DOESN'T SEEM TO EXIST! THIS IS JUST A15 REPEATED.
-      std::cout << "\tApollo 17 Image\n";
+      */
       pin = PinholeModel( isis_model.camera_center(),
                           isis_model.camera_pose().rotation_matrix(),
-                          76.054, 76.054, 57.2375, 57.2375,
-                          BrownConradyDistortion(Vector2(-0.006,-0.002),
-                                                 Vector3(-.13361854e-5,
-                                                         0.52261757e-9,
-                                                         -0.50728336e-13),
-                                                 Vector2(-.54958195e-6,
-                                                         -.46089420e-10),
-                                                 2.9659070) );
-      pin.set_pixel_pitch(4*0.005);
-      pin.set_coordinate_frame( pin.coordinate_frame_u_direction(),
-                                -pin.coordinate_frame_v_direction(),
-                                pin.coordinate_frame_w_direction() );
+                          75.908, 75.908, PRINCIPAL_POINT_MM, PRINCIPAL_POINT_MM,
+                          BrownConradyDistortion(Vector2(-0.010,-0.004),
+                                                 Vector3(-0.13678194e-5,
+                                                         0.53824020e-9,
+                                                         -0.52793282e-13),
+                                                 Vector2(0.12275363e-5,
+                                                         -0.24596243e-9),
+                                                 1.8859721) );
+    } else if ( boost::contains(serial,"APOLLO17") ) {
+      vw_out() << "\tApollo 17 Image\n";
+
+      pin = PinholeModel( isis_model.camera_center(),
+                          isis_model.camera_pose().rotation_matrix(),
+                          75.8069, 75.8069, PRINCIPAL_POINT_MM, PRINCIPAL_POINT_MM,
+                          BrownConradyDistortion(Vector2(0.0074, 0.0094),
+                                                 Vector3(-0.1278842e-5,
+                                                         0.5264148e-9,
+                                                         -0.5259516e-13),
+                                                 Vector2(0.3821279e-6,
+                                                         0.1168324e-19),
+                                                 3.371325) );
+
 
     }
-
+    pin.set_pixel_pitch(pixel_scalar*0.005);
+    pin.set_coordinate_frame( Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1) );
     pin.write( fs::change_extension(input,".pinhole").string() );
 
     // Test with a wrapping from
@@ -114,19 +131,22 @@ int main( int argc, char* argv[] ) {
     Vector3 inworld_frame =pin.pixel_to_vector(Vector2(isis_model.samples(),
                                                        isis_model.lines())/2);
 
+    /*
     std::cout << "PinholeModel   : " << quaternion_to_euler_xyz(pin.camera_pose(Vector2())) << "\n";
     std::cout << "\t" << acos(dot_prod(inverse(pin.camera_pose(Vector2())).rotate(inworld_frame),Vector3(0,0,1))) << "\n";
     std::cout << "AdjustedCamera : " << quaternion_to_euler_xyz(adjusted.camera_pose(Vector2())) << "\n";
     std::cout << "IsisCameraModel: " << quaternion_to_euler_xyz(isis_model.camera_pose(Vector2())) << "\n";
     std::cout << "\t" << acos(dot_prod(inverse(isis_model.camera_pose(Vector2())).rotate(inworld_frame),Vector3(0,0,1))) << "\n";
     std::cout << "IsisAdjustedCam: " << quaternion_to_euler_xyz(isis_adjusted.camera_pose(Vector2())) << "\n";
+    */
 
     try {
       // Perform a test
       double error_sum = 0;
       double count = 0;
-      for ( int i = 0; i < isis_model.samples(); i += 200 ) {
-        for ( int j = 0; j < isis_model.lines(); j += 200 ) {
+      int inc_amt = isis_model.samples()/20;
+      for ( int i = 0; i < isis_model.samples(); i += inc_amt ) {
+        for ( int j = 0; j < isis_model.lines(); j += inc_amt ) {
           Vector2 starting( i,j );
           Vector3 point = isis_model.pixel_to_vector(starting);
           point = 5e3*point + isis_model.camera_center();
@@ -136,13 +156,13 @@ int main( int argc, char* argv[] ) {
           error_sum += norm_2(starting-result);
           count++;
           if ( !pin.projection_valid( point ) )
-            std::cout << "\tPROJECTION INVALID\n";
+            vw_out() << "\tPROJECTION INVALID\n";
         }
       }
-      std::cout << "\n\tCamera Average Pixel Error: "
-                << error_sum / count << "\n\n";
+      vw_out() << "\tAverage Pixel Error: "
+                << error_sum / count << "\n";
     } catch ( ... ) {
-      std::cout << "FAILED TO PERFORM PROJECTION\n";
+      vw_out() << "FAILED TO PERFORM PROJECTION\n";
       continue;
     }
 

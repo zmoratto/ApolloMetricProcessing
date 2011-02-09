@@ -99,6 +99,13 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
     ${StereoPipeline_LIBRARIES}
     ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
   set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_guided_match)
+
+  # Extract LOLA and WAC GCP
+  add_executable( extract_lola_wac_gcp extract_lola_wac_gcp.cc )
+  target_link_libraries( extract_lola_wac_gcp
+    ${VW_DEPENDENCIES}
+    ${StereoPipeline_LIBRARIES} )
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp)
 endif()
 
 message("Installing to BIN:")

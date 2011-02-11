@@ -3,8 +3,11 @@
 #include <vw/Cartography.h>
 #include <vw/InterestPoint.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
+#include <vw/Math/RANSAC.h>
+#include <vw/Math/Geometry.h>
 
 #include <asp/IsisIO/IsisAdjustCameraModel.h>
+#include <asp/ControlNetTK/equalization.h>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
@@ -15,10 +18,19 @@ namespace fs = boost::filesystem;
 using namespace vw;
 using namespace vw::camera;
 
+inline Vector2 center_on_180( Vector2 vec ) {
+  if ( vec[0] < 0 )
+    vec[0] += 360.0;
+  if ( vec[0] > 360 )
+    vec[0] -= 360.0;
+  return vec;
+}
+
 int main( int argc, char* argv[] ) {
   std::vector<std::string> input_file_names;
   po::options_description general_options("Options");
   general_options.add_options()
+    ("generate-wac", "Generate wac crops only")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -97,6 +109,19 @@ int main( int argc, char* argv[] ) {
     float degree_scale;
     BBox2 degree_bbox =
       cartography::camera_bbox( lola_georef, model, size[0], size[1], degree_scale );
+
+    // Correct bbox if it crosses the 180
+    // camera_bbox has basically failed me here.
+    if ( ( degree_bbox.max()[0] - degree_bbox.min()[0] ) > 180 ) {
+      bool work;
+      using namespace cartography;
+      degree_bbox = BBox2();
+      degree_bbox.grow( center_on_180( geospatial_intersect( Vector2(), lola_georef, model, 1, work ) ) );
+      degree_bbox.grow( center_on_180( geospatial_intersect( Vector2(0,size[1]), lola_georef, model, 1, work ) ) );
+      degree_bbox.grow( center_on_180( geospatial_intersect( Vector2(size[0],0), lola_georef, model, 1, work ) ) );
+      degree_bbox.grow( center_on_180( geospatial_intersect( size, lola_georef, model, 1, work ) ) );
+    }
+
     degree_bbox.expand(2);
     bool working;
     Vector2 l_direction =
@@ -134,22 +159,118 @@ int main( int argc, char* argv[] ) {
     tx(1,1) = -degree_scale*1.1;
     georef_out.set_transform( tx );
     std::cout << "Georef: " << georef_out << "\n";
+    TransformRef wactx( compose( RotateTransform( -rotate,
+                                                  (Vector2(size)-Vector2(1,1))/2 ),
+                                 cartography::GeoTransform( wac_georef, georef_out ) ) );
 
-    std::cout << "Size: " << size/2 << "\n";
-    std::cout << "Size: " << size << "\n";
+    if ( !fs::exists(fs::path(camera_file).replace_extension(".wac.tif")) ||
+         vm.count("generate-wac") ) {
+      // Rastering an image to perform transform
+      DiskImageView<PixelGray<uint8> > input( wac_file );
+      ImageViewRef<PixelGray<uint8> > output1 =
+        crop( transform( input, wactx ),
+              BBox2i(0,0,size[0],size[1]) );
+      write_image( fs::path(camera_file).replace_extension(".wac.tif").string(),
+                   normalize(output1) );
+      if ( vm.count("generate-wac") )
+        continue; // Finish for this file
+    }
 
-    // Rastering an image to perform transform
+    // Process image for interest points
+    std::string match_file;
+    {
+      std::string wac_file =
+        fs::path(camera_file).replace_extension(".wac.tif").string();
+      std::string amc_file =
+        fs::path(camera_file).replace_extension(".tif").string();
 
-    // crops more of the image than we want
-    cartography::GeoTransform geotx( wac_georef, georef_out );
-    DiskImageView<PixelGray<uint8> > input( wac_file );
-    ImageViewRef<PixelGray<uint8> > output1 =
-      crop( transform( input,
-                       compose( RotateTransform( -rotate, (Vector2(size)-Vector2(1,1))/2 ),
-                                geotx
-                                ) ),
-            BBox2i(0,0,size[0],size[1]) );
-    write_image( fs::path(camera_file).replace_extension(".wac.tif").string(),
-                 normalize(output1) );
+      match_file =
+        fs::path( wac_file ).stem() + "__" +
+        fs::path( amc_file ).stem() + ".match";
+
+      const float IDEAL_OBALOG_THRESHOLD = .07;
+      ip::InterestPointList ip_wac, ip_amc;
+      {
+        ip::OBALoGInterestOperator
+          interest_operator(IDEAL_OBALOG_THRESHOLD/3);
+        ip::IntegralInterestPointDetector<ip::OBALoGInterestOperator>
+          detector( interest_operator );
+        DiskImageView<PixelGray<uint8> > wac(wac_file),
+          amc(amc_file);
+        vw_out() << "Detecting Interest Points .... ";
+        ip_wac = detect_interest_points(wac, detector);
+        ip_amc = detect_interest_points(amc, detector);
+        ip::SGradDescriptorGenerator descriptor;
+        descriptor(wac, ip_wac);
+        descriptor(amc, ip_amc);
+        vw_out() << "done\n";
+      }
+
+      try {
+        std::vector<ip::InterestPoint> ip_wac_v, ip_amc_v;
+        std::copy( ip_wac.begin(), ip_wac.end(),
+                   std::back_inserter(ip_wac_v) );
+        std::copy( ip_amc.begin(), ip_amc.end(),
+                   std::back_inserter(ip_amc_v) );
+        ip::DefaultMatcher matcher(0.6);
+        std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
+        matcher(ip_wac_v, ip_amc_v, matched_ip1, matched_ip2, false,
+                TerminalProgressCallback( "tools.ipalign", "Matching:"));
+
+        std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
+        std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
+        Matrix<double> align_matrix;
+
+        std::vector<int> indices;
+        math::RandomSampleConsensus<math::SimilarityFittingFunctor, math::InterestPointErrorMetric> ransac(math::SimilarityFittingFunctor(), math::InterestPointErrorMetric(), 10);
+        align_matrix = ransac(ransac_ip2,ransac_ip1);
+        if ( norm_2(subvector(select_col(align_matrix,2),0,2)) > 200 ||
+             align_matrix(0,0) < 0 || align_matrix(1,1) < 0 ) {
+          std::cout << "RANSAC FITTED TO OUTLIER\n";
+          continue;
+        }
+        std::cout << "Align Matrix: " << align_matrix << "\n";
+        indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
+
+        std::vector<ip::InterestPoint> final_ip1, final_ip2;
+        for (unsigned idx=0; idx < indices.size(); ++idx) {
+          final_ip1.push_back(matched_ip1[indices[idx]]);
+          final_ip2.push_back(matched_ip2[indices[idx]]);
+        }
+
+        if ( final_ip1.size() < 6 ) {
+          std::cout << "FAILED TO FIND ENOUGH IPs\n";
+          continue;
+        }
+
+        // Equalizing matches
+        asp::cnettk::equalization( final_ip1, final_ip2, 10 );
+
+        ip::write_binary_match_file(match_file, final_ip1, final_ip2);
+      } catch ( ... ) {
+        std::cout << "RANSAC FAILED\n";
+        continue;
+      }
+    } // end of ip detection
+
+    { // Looking up LLA location of GCP files
+      std::vector<ip::InterestPoint> wac_ip, amc_ip;
+      ip::read_binary_match_file(match_file, wac_ip, amc_ip);
+
+      DiskImageView<double> lola( lola_file );
+      InterpolationView<EdgeExtensionView<DiskImageView<double>, PeriodicEdgeExtension>, BicubicInterpolation> lola_intrp( edge_extend(lola, PeriodicEdgeExtension() ), BicubicInterpolation() );
+
+      for ( size_t i = 0; i < wac_ip.size(); i++ ) {
+        Vector2 lonlat =
+          wac_georef.pixel_to_lonlat( wactx.reverse(Vector2(wac_ip[i].x,wac_ip[i].y)) );
+
+        Vector2 lola_px =  lola_georef.lonlat_to_pixel(lonlat);
+        double radius = lola_intrp( lola_px[0], lola_px[1]) +
+          lola_georef.datum().radius( lonlat[0], lonlat[1] );
+
+        std::cout << i << "\t" << lonlat << " " << radius << "\n";
+      }
+
+    }
   }
 }

@@ -37,15 +37,15 @@ namespace vw {
 
   public:
 
-  InterestPointMatcherANN( double threshold = 0.5 ) : m_threshold(threshold) {}
+    InterestPointMatcherANN( double threshold = 0.5 ) : m_threshold(threshold) {}
 
     /// Given two lists of interest points, this routine returns the two
     /// losts of matching interest points.
     template <class ListT, class MatchListT>
-      void operator()( ListT const& ip1, ListT const& ip2,
-                       MatchListT& matched_ip1, MatchListT& matched_ip2,
-                       bool /*bidirectional*/ = false,
-                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
+    void operator()( ListT const& ip1, ListT const& ip2,
+                     MatchListT& matched_ip1, MatchListT& matched_ip2,
+                     bool /*bidirectional*/ = false,
+                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
       typedef typename ListT::const_iterator IterT;
 
       matched_ip1.clear(); matched_ip2.clear();
@@ -59,7 +59,7 @@ namespace vw {
       double eps = 0.0;
       ANNpointArray ann_pts;
       ann_pts = annAllocPts( ip2.size(), ip2.begin()->size() );
-      int count = 0;
+      size_t count = 0;
       for ( IterT ip = ip2.begin(); ip != ip2.end(); ip++ ) {
         std::copy( ip->begin(), ip->end(), ann_pts[count] );
         count++;
@@ -69,12 +69,13 @@ namespace vw {
 
       // Making Searches in ANN
       progress_callback.report_progress(0);
-      std::vector<int> match_index( ip1.size() );
+      std::vector<size_t> match_index( ip1.size() );
       Vector2 nn_distances;
       Vector2i nn_indexes;
       Vector<float> query( ip1.begin()->size() );
       float inc_amt = 1/float(ip1.size());
       count = 0;
+      const size_t FAIL = ip2.size();
       BOOST_FOREACH( ip::InterestPoint const& ip, ip1 ) {
         if (progress_callback.abort_requested())
           vw_throw( Aborted() << "Aborted by ProgressCallback" );
@@ -85,7 +86,7 @@ namespace vw {
                             &nn_indexes[0], &nn_distances[0], eps );
 
         if ( nn_distances[0] > m_threshold * nn_distances[1] )
-          match_index[count] = -1;
+          match_index[count] = FAIL;
         else
           match_index[count] = nn_indexes[0];
         count++;
@@ -98,8 +99,8 @@ namespace vw {
       annClose();
 
       // Building matched_ip1 & matched ip 2
-      for (unsigned i = 0; i < ip1.size(); i++ ) {
-        if ( match_index[i] != -1 ) {
+      for (size_t i = 0; i < ip1.size(); i++ ) {
+        if ( match_index[i] < FAIL ) {
           matched_ip1.push_back( ip1[i] );
           matched_ip2.push_back( ip2[match_index[i]] );
         }

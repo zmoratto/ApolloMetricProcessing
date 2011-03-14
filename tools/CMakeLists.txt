@@ -44,6 +44,7 @@ find_package(StereoPipeline
 find_package(ISIS)
 find_package(CSPICE)
 find_package(QT)
+find_package(FLANN)
 
 include_directories(
   ${Boost_INCLUDE_DIR}
@@ -69,6 +70,11 @@ endif()
 if (CSPICE_FOUND)
   include_directories(${CSPICE_INCLUDE_DIR})
   link_directories(${CSPICE_LIBRARY_DIRS})
+endif()
+
+if (FLANN_FOUND)
+  include_directories(${FLANN_INCLUDE_DIR})
+  link_directories(${FLANN_LIBRARY_DIRS})
 endif()
 
 if (QT_FOUND)

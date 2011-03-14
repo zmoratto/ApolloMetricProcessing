@@ -12,7 +12,8 @@ set(VW_DEPENDENCIES ${Boost_LIBRARIES} ${VisionWorkbench_LIBRARIES} ${LAPACK_LIB
 # - Executable that registers images to clementine and the provides a gcp
 add_executable( extract_clementine_gcp extract_clementine_gcp.cc )
 target_link_libraries( extract_clementine_gcp
-                       ${VW_DEPENDENCIES} )
+                       ${VW_DEPENDENCIES}
+                       ${FLANN_LIBRARIES})
 set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_clementine_gcp)
 
 # VWIP Filter
@@ -27,14 +28,14 @@ set(PROGRAM_LISTING ${PROGRAM_LISTING} vwip_filter)
 add_executable( apollo_match apollo_match.cc )
 target_link_libraries( apollo_match
   ${VW_DEPENDENCIES}
-  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
+  ${FLANN_LIBRARIES})
 set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_match)
 
 # Apollo Bulk Match
 add_executable( apollo_bulk_match apollo_bulk_match.cc )
 target_link_libraries( apollo_bulk_match
   ${VW_DEPENDENCIES}
-  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
+  ${FLANN_LIBRARIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_bulk_match )
 
 # Bulk Match Unpack
@@ -93,18 +94,19 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
   set(PROGRAM_LISTING ${PROGRAM_LISTING} isis_adjust_2_csv)
 
   # Apollo Guided Match
-  add_executable( apollo_guided_match apollo_guided_match.cc )
-  target_link_libraries( apollo_guided_match
-    ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES}
-    ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib/libANN.a )
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_guided_match)
+  # add_executable( apollo_guided_match apollo_guided_match.cc )
+  # target_link_libraries( apollo_guided_match
+  #   ${VW_DEPENDENCIES}
+  #   ${StereoPipeline_LIBRARIES}
+  #   ${FLANN_LIBRARIES} )
+  # set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_guided_match)
 
   # Extract LOLA and WAC GCP
   add_executable( extract_lola_wac_gcp extract_lola_wac_gcp.cc )
   target_link_libraries( extract_lola_wac_gcp
     ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES} )
+    ${StereoPipeline_LIBRARIES}
+    ${FLANN_LIBRARIES})
   set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp)
 endif()
 

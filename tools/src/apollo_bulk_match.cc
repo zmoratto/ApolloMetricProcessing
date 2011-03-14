@@ -14,7 +14,6 @@
 #include <vw/FileIO.h>
 #include <vw/Math.h>
 #include "ransac.h"
-#include "ann_matcher.h"
 
 using namespace vw;
 using namespace vw::ip;
@@ -34,6 +33,30 @@ namespace io = boost::iostreams;
 #include <boost/foreach.hpp>
 
 #include "iprecord.h"
+
+// Duplicate matches for any given interest point probably indicate a
+// poor match, so we cull those out here.
+void remove_duplicates(std::vector<InterestPoint> &ip1, std::vector<InterestPoint> &ip2) {
+  std::vector<InterestPoint> new_ip1, new_ip2;
+
+  for (size_t i = 0; i < ip1.size(); ++i) {
+    bool bad_entry = false;
+    for (size_t j = 0; j < ip1.size(); ++j) {
+      if (i != j &&
+          ((ip1[i].x == ip1[j].x && ip1[i].y == ip1[j].y) ||
+           (ip2[i].x == ip2[j].x && ip2[i].y == ip2[j].y)) ) {
+        bad_entry = true;
+      }
+    }
+    if (!bad_entry) {
+      new_ip1.push_back(ip1[i]);
+      new_ip2.push_back(ip2[i]);
+    }
+  }
+
+  ip1 = new_ip1;
+  ip2 = new_ip2;
+}
 
 // Handles multiple tasks of match and serialize their writing to file.
 class ThreadedMatcher : private boost::noncopyable {
@@ -94,7 +117,7 @@ class ThreadedMatcher : private boost::noncopyable {
 
       std::vector<InterestPoint> matched_ip1, matched_ip2;
 
-      InterestPointMatcherANN matcher( m_match_threshold );
+      DefaultMatcher matcher( m_match_threshold );
       matcher(ip1, ip2, matched_ip1, matched_ip2, false,
               TerminalProgressCallback( "tools.ipmatch","Matching:"));
 

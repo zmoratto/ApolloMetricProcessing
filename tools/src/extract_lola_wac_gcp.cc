@@ -30,7 +30,9 @@ int main( int argc, char* argv[] ) {
   std::vector<std::string> input_file_names;
   po::options_description general_options("Options");
   general_options.add_options()
-    ("generate-wac", "Generate wac crops only")
+    ("generate-wac-only", "Generate wac crops only")
+    ("match-only", "Only perform matching")
+    ("no-match", "No matching please .. only loading")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -68,9 +70,8 @@ int main( int argc, char* argv[] ) {
   cartography::read_georeference( lola_georef, lola_file );
   cartography::read_georeference( wac_georef,  wac_file );
 
-
   // Create Control Network
-  // .. TODO ..
+  ba::ControlNetwork cnet("WAC LOLA GCPs",ba::ControlNetwork::ImageToGround);
 
   // Generating Data
   BOOST_FOREACH( std::string const& camera_file, input_file_names ) {
@@ -129,12 +130,20 @@ int main( int argc, char* argv[] ) {
                                          1, working ) -
       cartography::geospatial_intersect( Vector2(0,size[1]), lola_georef, model,
                                          1, working );
+    if (l_direction[0] < -200)
+      l_direction[0] += 360;
+    if (l_direction[0] > 200 )
+      l_direction[0] -= 360;
     std::cout << "L direction: " << l_direction << "\n";
     Vector2 r_direction =
       cartography::geospatial_intersect( Vector2(size[0],0), lola_georef, model,
                                          1, working ) -
       cartography::geospatial_intersect( size, lola_georef, model,
                                          1, working );
+    if (r_direction[0] < -200)
+      r_direction[0] += 360;
+    if (r_direction[0] > 200)
+      r_direction[0] -= 360;
     std::cout << "R direction: " << r_direction << "\n";
     double rotate = M_PI/2 - (atan2(l_direction[1],l_direction[0]) +
                      atan2(r_direction[1],r_direction[0]) )/2;
@@ -163,8 +172,8 @@ int main( int argc, char* argv[] ) {
                                                   (Vector2(size)-Vector2(1,1))/2 ),
                                  cartography::GeoTransform( wac_georef, georef_out ) ) );
 
-    if ( !fs::exists(fs::path(camera_file).replace_extension(".wac.tif")) ||
-         vm.count("generate-wac") ) {
+    if ( !fs::exists(fs::path(camera_file).replace_extension(".wac.tif").string()) ||
+         vm.count("generate-wac-only") ) {
       // Rastering an image to perform transform
       DiskImageView<PixelGray<uint8> > input( wac_file );
       ImageViewRef<PixelGray<uint8> > output1 =
@@ -172,22 +181,21 @@ int main( int argc, char* argv[] ) {
               BBox2i(0,0,size[0],size[1]) );
       write_image( fs::path(camera_file).replace_extension(".wac.tif").string(),
                    normalize(output1) );
-      if ( vm.count("generate-wac") )
+      if ( vm.count("generate-wac-only") )
         continue; // Finish for this file
     }
 
     // Process image for interest points
-    std::string match_file;
-    {
-      std::string wac_file =
-        fs::path(camera_file).replace_extension(".wac.tif").string();
-      std::string amc_file =
-        fs::path(camera_file).replace_extension(".tif").string();
+    std::string wac_file =
+      fs::path(camera_file).replace_extension(".wac.tif").string();
+    std::string amc_file =
+      fs::path(camera_file).replace_extension(".tif").string();
 
-      match_file =
-        fs::path( wac_file ).stem() + "__" +
-        fs::path( amc_file ).stem() + ".match";
-
+    std::string match_file =
+      fs::path( wac_file ).stem() + "__" +
+      fs::path( amc_file ).stem() + ".match";
+    if ( (!fs::exists( match_file ) ||
+          vm.count("match-only")) && !vm.count("no-match") ) {
       const float IDEAL_OBALOG_THRESHOLD = .07;
       ip::InterestPointList ip_wac, ip_amc;
       {
@@ -198,6 +206,7 @@ int main( int argc, char* argv[] ) {
         DiskImageView<PixelGray<uint8> > wac(wac_file),
           amc(amc_file);
         vw_out() << "Detecting Interest Points .... ";
+        vw_out() << std::flush;
         ip_wac = detect_interest_points(wac, detector);
         ip_amc = detect_interest_points(amc, detector);
         ip::SGradDescriptorGenerator descriptor;
@@ -242,6 +251,7 @@ int main( int argc, char* argv[] ) {
           std::cout << "FAILED TO FIND ENOUGH IPs\n";
           continue;
         }
+        std::cout << "Found " << final_ip1.size() << " points prior equalization.\n";
 
         // Equalizing matches
         asp::cnettk::equalization( final_ip1, final_ip2, 10 );
@@ -253,7 +263,7 @@ int main( int argc, char* argv[] ) {
       }
     } // end of ip detection
 
-    { // Looking up LLA location of GCP files
+    if ( fs::exists(match_file) ) { // Looking up LLA location of GCP files
       std::vector<ip::InterestPoint> wac_ip, amc_ip;
       ip::read_binary_match_file(match_file, wac_ip, amc_ip);
 
@@ -269,8 +279,25 @@ int main( int argc, char* argv[] ) {
           lola_georef.datum().radius( lonlat[0], lonlat[1] );
 
         std::cout << i << "\t" << lonlat << " " << radius << "\n";
-      }
 
+        // Actually appending to the Control Network.
+        ba::ControlPoint cpoint(ba::ControlPoint::GroundControlPoint);
+        cpoint.set_position(cartography::LonLatRadToXYZFunctor()(Vector3(lonlat[0],lonlat[1],radius)));
+        cpoint.set_sigma(Vector3(300,300,300));
+        ba::ControlMeasure cm( amc_ip[i].x, amc_ip[i].y, 1, 1,
+                               ba::ControlMeasure::Automatic );
+        cm.set_serial( serial );
+        cpoint.add_measure( cm );
+        cnet.add_control_point( cpoint );
+      }
     }
+
+    // Check exit condition
+    if ( vm.count("match-only") )
+      continue;
   }
+
+  // Actually write the Control Network
+  std::cout << "Writing final control network: lola_wac_gcp.cnet\n";
+  cnet.write_binary("lola_wac_gcp");
 }

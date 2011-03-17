@@ -15,6 +15,8 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 #include <boost/foreach.hpp>
 
+#include "camera_solve.h"
+
 using namespace vw;
 using namespace vw::camera;
 
@@ -64,7 +66,7 @@ int main( int argc, char* argv[] ) {
 
   // CONSTANTS for maps. Sorry guys this is specific for my system.
   // The WAC mosaic is 20GB and is currently private.
-  std::string lola_file("/Users/zmoratto/Data/Moon/LOLA/LOLA_64px_p_deg_DEM.tif");
+  std::string lola_file("/Users/zmoratto/Data/Moon/LOLA/LOLA_DEM_64/LOLA_64px_p_deg_DEM.tif");
   std::string wac_file("/Users/zmoratto/Data/Moon/LROWAC/global_100m_JanFeb_and_JulyAug.180.cub");
   cartography::GeoReference lola_georef, wac_georef;
   cartography::read_georeference( lola_georef, lola_file );
@@ -74,6 +76,7 @@ int main( int argc, char* argv[] ) {
   ba::ControlNetwork cnet("WAC LOLA GCPs",ba::ControlNetwork::ImageToGround);
 
   // Generating Data
+  size_t image_id = 0;
   BOOST_FOREACH( std::string const& camera_file, input_file_names ) {
     // Create Camera Model
     boost::shared_ptr<CameraModel> model;
@@ -287,17 +290,39 @@ int main( int argc, char* argv[] ) {
         ba::ControlMeasure cm( amc_ip[i].x, amc_ip[i].y, 1, 1,
                                ba::ControlMeasure::Automatic );
         cm.set_serial( serial );
+        cm.set_image_id( image_id );
         cpoint.add_measure( cm );
+        //std::cout << "Added:\n" << cm << "\n" << cpoint << "\n";
         cnet.add_control_point( cpoint );
       }
     }
+    image_id++;
 
-    // Check exit condition
-    if ( vm.count("match-only") )
+    // The sanity check code doesn't work with control networks
+    // attached to other cameras.
+    if ( input_file_names.size() > 1 )
       continue;
+
+    // Sanity check. Let's solve for the camera position from these
+    // points. Hopefully it doesn't move to far?
+    boost::shared_ptr<IsisAdjustCameraModel> adjust_cam =
+      boost::shared_dynamic_cast<IsisAdjustCameraModel>(model);
+    if ( adjust_cam != 0 ) {
+      CameraGCPLMA lma_model( cnet, adjust_cam );
+      Vector<double> seed = lma_model.extract( adjust_cam );
+      int status = 0;
+      Vector<double> objective;
+      objective.set_size( cnet.size() * 2 );
+      Vector<double> result = levenberg_marquardt( lma_model, seed,
+                                                   objective, status );
+      std::cout << "Status: " << status << std::endl;
+      std::cout << "Change: " << result - seed << std::endl;
+    }
   }
 
   // Actually write the Control Network
-  std::cout << "Writing final control network: lola_wac_gcp.cnet\n";
-  cnet.write_binary("lola_wac_gcp");
+  if ( !vm.count("match-only") && !vm.count("generate-wac-only") ) {
+    std::cout << "Writing final control network: lola_wac_gcp.cnet\n";
+    cnet.write_binary("lola_wac_gcp");
+  }
 }

@@ -32,6 +32,7 @@ int main( int argc, char* argv[] ) {
   std::vector<std::string> input_file_names;
   po::options_description general_options("Options");
   general_options.add_options()
+    ("reuse-wac", "reuse the wac, trust")
     ("generate-wac-only", "Generate wac crops only")
     ("match-only", "Only perform matching")
     ("no-match", "No matching please .. only loading")
@@ -175,18 +176,17 @@ int main( int argc, char* argv[] ) {
                                                   (Vector2(size)-Vector2(1,1))/2 ),
                                  cartography::GeoTransform( wac_georef, georef_out ) ) );
 
-    if ( !fs::exists(fs::path(camera_file).replace_extension(".wac.tif").string()) ||
-         vm.count("generate-wac-only") ) {
-      // Rastering an image to perform transform
+    // Rastering an image to perform transform
+    if ( !vm.count("reuse-wac") ) {
       DiskImageView<PixelGray<uint8> > input( wac_file );
       ImageViewRef<PixelGray<uint8> > output1 =
         crop( transform( input, wactx ),
               BBox2i(0,0,size[0],size[1]) );
       write_image( fs::path(camera_file).replace_extension(".wac.tif").string(),
                    normalize(output1) );
-      if ( vm.count("generate-wac-only") )
-        continue; // Finish for this file
     }
+    if ( vm.count("generate-wac-only") )
+      continue; // Finish for this file
 
     // Process image for interest points
     std::string wac_file =

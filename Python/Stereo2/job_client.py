@@ -35,9 +35,9 @@ if __name__ == '__main__':
 
     # Start performing work
     while True:
-        socket.send("Need Job")
+        socket.send("NJ")
         message = socket.recv()
-        if ( message == "Finished" ):
+        if ( message == "FN" ):
             print "No Jobs Available"
             break
         comma = message.find(",")
@@ -47,7 +47,7 @@ if __name__ == '__main__':
         os.system(cmd)
 
         index = int(message[:comma])
-        socket.send("Finished,"+str(index))
+        socket.send("FN,"+str(index))
         message = socket.recv()
 
     print "job_client.py clean exit"

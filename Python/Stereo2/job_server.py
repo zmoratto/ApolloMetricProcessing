@@ -29,10 +29,8 @@ def find_jobs(working_dir):
         if ( diff > 1 ):
             continue;
 
-        cam1 = cube_files[i][:cube_files[i].find(".")] + ".isis_adjust"
-        cam2 = cube_files[i+1][:cube_files[i+1].find(".")] + ".isis_adjust"
-        cam1_alt = cube_files[i][:cube_files[i].rfind(".")] + ".isis_adjust"
-        cam2_alt = cube_files[i+1][:cube_files[i+1].rfind(".")] + ".isis_adjust"
+        cam1 = cube_files[i][:cube_files[i].rfind(".")] + ".isis_adjust"
+        cam2 = cube_files[i+1][:cube_files[i+1].rfind(".")] + ".isis_adjust"
 
         id1 = (cube_files[i].split("-M-")[1]).split(".")[0]
         id2 = (cube_files[i+1].split("-M-")[1]).split('.')[0]
@@ -50,13 +48,11 @@ def find_jobs(working_dir):
             continue;
         else:
             stereo_pos_args = ""
-            if ( os.path.exists(cam1) and os.path.exists(cam2) ):
+            if (os.path.exists(cam1) and os.path.exists(cam2)):
                 stereo_pos_args = cube_files[i]+" "+cube_files[i+1]+" "+cam1+" "+cam2
-            elif (os.path.exists(cam1_alt) and os.path.exists(cam2_alt)):
-                stereo_pos_args = cube_files[i]+" "+cube_files[i+1]+" "+cam1_alt+" "+cam2_alt
             else:
-                stereo_pos_args = cube_files[i]+" "+cube_files[i+1]
-            stereo_cmd = "stereo_corr "+stereo_pos_args+" "+full_prefix+" && touch "+full_prefix+"-corr-completed.txt";
+                continue
+            stereo_cmd = "stereo_tri "+stereo_pos_args+" "+full_prefix+" && touch "+full_prefix+"-corr-completed.txt";
             jobs.append( ProcessingJob( stereo_cmd ) )
 
     print '\n\n'
@@ -83,20 +79,20 @@ if __name__ == '__main__':
     write_jobs_status(jobs)
     while True:
         message = socket.recv()
-        if ( message == "Need Job" ):
+        if ( message == "NJ" ):
             if ( read_head < len(jobs) ):
                 while ( jobs[read_head].status != 0 and read_head < len(jobs) ):
                     read_head = read_head + 1
                 if ( read_head >= len(jobs) ):
-                    socket.send("Finished")
+                    socket.send("FN")
                     continue
                 socket.send( str(read_head)+","+jobs[read_head].cmd )
                 jobs[read_head].status=1
                 read_head = read_head+1
             else:
-                socket.send("Finished")
+                socket.send("FN")
             write_jobs_status(jobs)
-        elif ( message.find("Finished") == 0 ):
+        elif ( message.find("FN") == 0 ):
             index = int(message[message.find(",")+1:])
             socket.send("Thanks")
             jobs[index].status=2

@@ -108,6 +108,14 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
     ${StereoPipeline_LIBRARIES}
     ${FLANN_LIBRARIES})
   set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp)
+
+  # Extract LOLA and WAC GCP
+  add_executable( extract_lola_wac_gcp2 extract_lola_wac_gcp2.cc )
+  target_link_libraries( extract_lola_wac_gcp2
+    ${VW_DEPENDENCIES}
+    ${StereoPipeline_LIBRARIES}
+    ${FLANN_LIBRARIES})
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp2)
 endif()
 
 message("Installing to BIN:")

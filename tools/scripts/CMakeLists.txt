@@ -34,13 +34,15 @@ target_link_libraries( kriging_guided_match
 set(SUPPORT_LISTING ${SUPPORT_LISTING} kriging_guided_match)
 
 if ( IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
-  # BA filter
-  add_executable( ba_filter ba_filter.cc )
-  target_link_libraries( ba_filter
-    ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES}
-    ${ISIS_LIBRARIES} ${CSPICE_LIBRARIES} ${QT_LIBRARIES} )
-  set(SUPPORT_LISTING ${SUPPORT_LISTING} ba_filter)
+  if ( EXISTS ${QT_QMAKE_EXECUTABLE} )
+    # BA filter
+    add_executable( ba_filter ba_filter.cc )
+    target_link_libraries( ba_filter
+      ${VW_DEPENDENCIES}
+      ${StereoPipeline_LIBRARIES}
+      ${ISIS_LIBRARIES} ${CSPICE_LIBRARIES} ${QT_LIBRARIES} )
+    set(SUPPORT_LISTING ${SUPPORT_LISTING} ba_filter)
+  endif()
 endif()
 
 message("Installing  to LIBEXEC:")

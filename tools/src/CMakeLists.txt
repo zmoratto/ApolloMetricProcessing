@@ -50,72 +50,74 @@ target_link_libraries( ip_disparity
   ${VW_DEPENDENCIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} ip_disparity )
 
-if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
+if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR} )
+  if ( EXISTS ${QT_QMAKE_EXECUTABLE})
 
-  # apollo to pinhole
-  # - Converts an Apollo image to pinhole file
-  add_executable( apollo_to_pinhole apollo_to_pinhole.cc )
-  target_link_libraries( apollo_to_pinhole
-    ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES}
-    ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
-    ${QT_LIBRARIES})
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_to_pinhole)
+    # apollo to pinhole
+    # - Converts an Apollo image to pinhole file
+    add_executable( apollo_to_pinhole apollo_to_pinhole.cc )
+    target_link_libraries( apollo_to_pinhole
+      ${VW_DEPENDENCIES}
+      ${StereoPipeline_LIBRARIES}
+      ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
+      ${QT_LIBRARIES})
+    set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_to_pinhole)
 
-  # GCP from Control Network
-  # - Converts an ISIS style to individual GCPs
-  add_executable( gcp_from_net gcp_from_net.cc )
-  target_link_libraries( gcp_from_net
-    ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES}
-    ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
-    ${QT_LIBRARIES})
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} gcp_from_net)
+    # GCP from Control Network
+    # - Converts an ISIS style to individual GCPs
+    add_executable( gcp_from_net gcp_from_net.cc )
+    target_link_libraries( gcp_from_net
+      ${VW_DEPENDENCIES}
+      ${StereoPipeline_LIBRARIES}
+      ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
+      ${QT_LIBRARIES})
+    set(PROGRAM_LISTING ${PROGRAM_LISTING} gcp_from_net)
 
-  # CNET USGS Conversion
-  add_executable( cnet_usgs_conv cnet_usgs_conv.cc )
-  target_link_libraries( cnet_usgs_conv
-    ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES} )
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_usgs_conv)
+    # CNET USGS Conversion
+    add_executable( cnet_usgs_conv cnet_usgs_conv.cc )
+    target_link_libraries( cnet_usgs_conv
+      ${VW_DEPENDENCIES}
+      ${StereoPipeline_LIBRARIES} )
+    set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_usgs_conv)
 
-  # CSV 2 ISIS ADJUST
-  add_executable( csv_2_isis_adjust csv_2_isis_adjust.cc )
-  target_link_libraries( csv_2_isis_adjust
-    ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES} )
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} csv_2_isis_adjust)
+    # CSV 2 ISIS ADJUST
+    add_executable( csv_2_isis_adjust csv_2_isis_adjust.cc )
+    target_link_libraries( csv_2_isis_adjust
+      ${VW_DEPENDENCIES}
+      ${StereoPipeline_LIBRARIES} )
+    set(PROGRAM_LISTING ${PROGRAM_LISTING} csv_2_isis_adjust)
 
-  # ISIS ADJUST 2 CSV
-  add_executable( isis_adjust_2_csv isis_adjust_2_csv.cc )
-  target_link_libraries( isis_adjust_2_csv
-    ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES} )
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} isis_adjust_2_csv)
+    # ISIS ADJUST 2 CSV
+    add_executable( isis_adjust_2_csv isis_adjust_2_csv.cc )
+    target_link_libraries( isis_adjust_2_csv
+      ${VW_DEPENDENCIES}
+      ${StereoPipeline_LIBRARIES} )
+    set(PROGRAM_LISTING ${PROGRAM_LISTING} isis_adjust_2_csv)
 
-  # Apollo Guided Match
-  # add_executable( apollo_guided_match apollo_guided_match.cc )
-  # target_link_libraries( apollo_guided_match
-  #   ${VW_DEPENDENCIES}
-  #   ${StereoPipeline_LIBRARIES}
-  #   ${FLANN_LIBRARIES} )
-  # set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_guided_match)
+    # Apollo Guided Match
+    # add_executable( apollo_guided_match apollo_guided_match.cc )
+    # target_link_libraries( apollo_guided_match
+    #   ${VW_DEPENDENCIES}
+    #   ${StereoPipeline_LIBRARIES}
+    #   ${FLANN_LIBRARIES} )
+    # set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_guided_match)
 
-  # Extract LOLA and WAC GCP
-  add_executable( extract_lola_wac_gcp extract_lola_wac_gcp.cc )
-  target_link_libraries( extract_lola_wac_gcp
-    ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES}
-    ${FLANN_LIBRARIES})
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp)
+    # Extract LOLA and WAC GCP
+    add_executable( extract_lola_wac_gcp extract_lola_wac_gcp.cc )
+    target_link_libraries( extract_lola_wac_gcp
+      ${VW_DEPENDENCIES}
+      ${StereoPipeline_LIBRARIES}
+      ${FLANN_LIBRARIES})
+    set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp)
 
-  # Extract LOLA and WAC GCP
-  add_executable( extract_lola_wac_gcp2 extract_lola_wac_gcp2.cc )
-  target_link_libraries( extract_lola_wac_gcp2
-    ${VW_DEPENDENCIES}
-    ${StereoPipeline_LIBRARIES}
-    ${FLANN_LIBRARIES})
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp2)
+    # Extract LOLA and WAC GCP
+    add_executable( extract_lola_wac_gcp2 extract_lola_wac_gcp2.cc )
+    target_link_libraries( extract_lola_wac_gcp2
+      ${VW_DEPENDENCIES}
+      ${StereoPipeline_LIBRARIES}
+      ${FLANN_LIBRARIES})
+    set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp2)
+  endif()
 endif()
 
 message("Installing to BIN:")

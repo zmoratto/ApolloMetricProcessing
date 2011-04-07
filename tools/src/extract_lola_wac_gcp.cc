@@ -168,8 +168,8 @@ int main( int argc, char* argv[] ) {
     Matrix<double> tx = math::identity_matrix<3>();
     tx(0,2) = -size[0]*degree_scale/2;
     tx(1,2) = size[1]*degree_scale/2;
-    tx(0,0) = degree_scale*1.1;
-    tx(1,1) = -degree_scale*1.1;
+    tx(0,0) = degree_scale;
+    tx(1,1) = -degree_scale;
     georef_out.set_transform( tx );
     std::cout << "Georef: " << georef_out << "\n";
     TransformRef wactx( compose( RotateTransform( -rotate,

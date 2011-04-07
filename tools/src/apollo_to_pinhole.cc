@@ -123,6 +123,12 @@ int main( int argc, char* argv[] ) {
     pin.set_coordinate_frame( Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1) );
     pin.write( fs::change_extension(input,".pinhole").string() );
 
+    { // Also write out a file that has this object's time
+      std::ofstream time( fs::change_extension(input,".time").string().c_str() );
+      time << input << ", " << std::setprecision(20) << isis_model.ephemeris_time(Vector2()) << std::endl;
+      time.close();
+    }
+
     // Test with a wrapping from
     AdjustedCameraModel adjusted( boost::shared_ptr<CameraModel>( new PinholeModel(pin) ), Vector3(), Quaternion<double>(1,0,0,0) );
     boost::shared_ptr<asp::BaseEquation> blank( new asp::PolyEquation(0) );

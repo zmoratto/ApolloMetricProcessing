@@ -1,4 +1,4 @@
-#!/opt/local/bin/python2.6
+#!/opt/local/bin/python2.7
 
 from Tkinter import *
 import Image, ImageTk, sys, os
@@ -79,7 +79,7 @@ class App:
         im = Image.open(image_name)
         [im_w, im_h] = im.size
         im_scale = float(self.obj_width)/float(im_w)
-        im = im.resize([im_scale*im_w,im_scale*im_h])
+        im = im.resize([int(im_scale*im_w),int(im_scale*im_h)])
         imtk = ImageTk.PhotoImage( im, palette=256 )
         return ReducedImage(imtk, im_scale)
 

@@ -164,9 +164,12 @@ namespace vw {
         result[k] = dot_prod(select_row(vstar,k),m_inv_v_y[k]);
 
       // Calculating sqrt( V* dot V-1 dot V* )
-      for ( size_t k = 0; k < m_ndim; k++ )
+      for ( size_t k = 0; k < m_ndim; k++ ) {
         err[k] = sqrt( dot_prod(select_row(vstar,k),
                                 m_lud[k]->solve( select_row(vstar,k) ) ) );
+        if ( std::isnan(err[k]) )
+          err[k] = 0;
+      }
       return result;
     }
 

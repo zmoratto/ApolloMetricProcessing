@@ -1,4 +1,4 @@
-#!/opt/local/bin/python2.7
+#!/opt/local/bin/python2.6
 
 from Tkinter import *
 import Image, ImageTk, sys, os

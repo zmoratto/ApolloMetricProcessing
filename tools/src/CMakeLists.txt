@@ -50,6 +50,12 @@ target_link_libraries( ip_disparity
   ${VW_DEPENDENCIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} ip_disparity )
 
+# Refine IP
+add_executable( refine_ip refine_ip.cc )
+target_link_libraries( refine_ip
+  ${VW_DEPENDENCIES} )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} refine_ip )
+
 if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR} )
   if ( EXISTS ${QT_QMAKE_EXECUTABLE})
 

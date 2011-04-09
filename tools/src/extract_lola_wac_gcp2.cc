@@ -4,6 +4,8 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
+#include <vw/Math/EulerAngles.h>
+#include <vw/Core/Debugging.h>
 
 #include <asp/IsisIO/IsisAdjustCameraModel.h>
 #include <asp/ControlNetTK/equalization.h>
@@ -484,11 +486,16 @@ int main( int argc, char* argv[] ) {
     inverse(camera_pose).rotate(sun_position - model->camera_center(Vector2()));
   sun_position = normalize(sun_position);
   sun_position[2] = -sun_position[2];
-  std::cout << "Sun Location: " << sun_position << "\n";
 
   // Load data
   std::pair<cartography::GeoReference, std::string> result =
     database.find_tile( cartography::XYZtoLonLatRadFunctor::apply(model->camera_center(Vector2())) );
+  std::cout << "Using tile: " << result.second << "\n";
+  if ( result.first.transform()(0,2) >= 180 ) {
+    Matrix3x3 t = result.first.transform();
+    t(0,2) -= 360;
+    result.first.set_transform(t);
+  }
   std::cout << result.first << "\n";
 
   // Working out scale and rotation
@@ -511,7 +518,6 @@ int main( int argc, char* argv[] ) {
     l_direction[0] += 360;
   if (l_direction[0] > 200 )
     l_direction[0] -= 360;
-  std::cout << "L direction: " << l_direction << "\n";
   Vector2 r_direction =
     cartography::geospatial_intersect( Vector2(size[0],0), result.first, model,
                                        1, working ) -
@@ -521,7 +527,6 @@ int main( int argc, char* argv[] ) {
     r_direction[0] += 360;
   if (r_direction[0] > 200)
     r_direction[0] -= 360;
-  std::cout << "R direction: " << r_direction << "\n\n";
   double rotate = M_PI/2 - (atan2(l_direction[1],l_direction[0]) +
                             atan2(r_direction[1],r_direction[0]) )/2;
   degree_scale = (norm_2(l_direction)+norm_2(r_direction)) / (size[1]*2);
@@ -553,13 +558,34 @@ int main( int argc, char* argv[] ) {
 
   double pixel_meters = 2*M_PI*1737400 / 360 * degree_scale;
   std::cout << "Meters per Pixel: " << pixel_meters << "\n";
+
+  cartography::GeoTransform geotx( result.first, georef_out );
+  std::cout << "Reverse bbox: " << geotx.reverse_bbox(BBox2i(0,0,size[0],size[1])) << "\n";
+
   DiskImageView<float> input( result.second );
   ImageViewRef<float> local_dem =
     crop( transform( input, wactx ),
           BBox2i(0,0,size[0],size[1]) );
-  write_image( "test.tif", gaussian_filter(channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(local_dem,
-                                                                                                      pixel_meters,pixel_meters),
-                                                                                      sun_position))),3),
-               TerminalProgressCallback("tools","Saving:") );
+  {
+    Timer cow("Test Apollo Lighting: ");
+    write_image( "test.tif", gaussian_filter(channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(local_dem,
+                                                                                                        pixel_meters,pixel_meters),
+                                                                                        sun_position))),1.5),
+                 TerminalProgressCallback("tools","Saving:") );
+  }
+
+  // Guess the WAC mosaic lighting
+  Vector3 wac_light = math::rotation_z_axis(rotate)*Vector3(-3,0,1);
+  wac_light = normalize(wac_light);
+  std::cout << "Wac Normal: " << wac_light << "\n";
+  std::cout << "Sun Normal: " << sun_position << "\n";
+  {
+    Timer cow("Test WAC Lighting: ");
+    write_image( "wac_test.tif", gaussian_filter(channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(local_dem,
+                                                                                                            pixel_meters, pixel_meters),
+                                                                                            wac_light))),1.5),
+                 TerminalProgressCallback("tools","Saving:") );
+  }
+
   return 0;
 }

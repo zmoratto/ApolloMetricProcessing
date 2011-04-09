@@ -83,12 +83,12 @@ int main(int argc, char** argv) {
     pixel_cast<PixelMask<Vector2f> >( disparity );
   ImageViewRef<PixelGray<uint8> > right_transformed =
     transform( image, stereo::DisparityTransform( pdisparity ) );
-  /*
-  DiskImageResourceGDAL rsrc( prefix+"-D.tif",
-                              pdisparity.format(), 256 );
-  block_write_image(rsrc, pdisparity,
-                    TerminalProgressCallback("tools","Writing:") );
-  */
+
+  write_image(prefix+"-D.tif", pdisparity,
+              TerminalProgressCallback("tools","Writing:") );
+
   write_image( fs::path(right).replace_extension("").string()+"-Trans.tif", right_transformed,
                TerminalProgressCallback("tools","Writing:") );
+
+  return 0;
 }

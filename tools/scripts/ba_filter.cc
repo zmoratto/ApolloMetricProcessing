@@ -32,8 +32,19 @@ public:
       m_num_pixel_observations += (*m_cnet)[i].size();
 
     // Setting up A vector
-    for ( size_t j = 0; j < a.size(); j++ )
+    for ( size_t j = 0; j < a.size(); j++ ) {
+      boost::shared_ptr<IsisAdjustCameraModel> cam =
+        boost::shared_dynamic_cast<IsisAdjustCameraModel>( m_cameras[j] );
+      boost::shared_ptr<asp::BaseEquation> posF = cam->position_func();
+      boost::shared_ptr<asp::BaseEquation> poseF = cam->pose_func();
       a[j] = camera_vector_t();
+      a[j][0] = (*posF)[0];
+      a[j][1] = (*posF)[1];
+      a[j][2] = (*posF)[2];
+      a[j][3] = (*poseF)[0];
+      a[j][4] = (*poseF)[1];
+      a[j][5] = (*poseF)[2];
+    }
   }
 
   // -- REQUIRED STUFF ---------
@@ -216,19 +227,43 @@ int main( int argc, char** argv ) {
     std::vector< boost::shared_ptr<CameraModel> > camera_models;
     std::vector< std::string > input_names;
     {
-      boost::shared_ptr<asp::BaseEquation> posF( new asp::PolyEquation( 0 ) );
-      boost::shared_ptr<asp::BaseEquation> poseF( new asp::PolyEquation( 0 ) );
-      boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( left_image,
-                                                                   posF, poseF ));
-      camera_models.push_back(p);
+      std::string adjust_file =
+        fs::path( left_image ).replace_extension("isis_adjust").string();
+      if ( fs::exists( adjust_file ) ) {
+        std::ifstream input( adjust_file.c_str() );
+        boost::shared_ptr<asp::BaseEquation> posF = asp::read_equation(input);
+        boost::shared_ptr<asp::BaseEquation> poseF = asp::read_equation(input);
+        input.close();
+        boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( left_image,
+                                                                     posF, poseF ));
+        camera_models.push_back(p);
+      } else {
+        boost::shared_ptr<asp::BaseEquation> posF( new asp::PolyEquation( 0 ) );
+        boost::shared_ptr<asp::BaseEquation> poseF( new asp::PolyEquation( 0 ) );
+        boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( left_image,
+                                                                     posF, poseF ));
+        camera_models.push_back(p);
+      }
       input_names.push_back( left_image );
     }
     {
-      boost::shared_ptr<asp::BaseEquation> posF( new asp::PolyEquation( 0 ) );
-      boost::shared_ptr<asp::BaseEquation> poseF( new asp::PolyEquation( 0 ) );
-      boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( right_image,
-                                                                   posF, poseF ));
-      camera_models.push_back(p);
+      std::string adjust_file =
+        fs::path( right_image ).replace_extension("isis_adjust").string();
+      if ( fs::exists( adjust_file ) ) {
+        std::ifstream input( adjust_file.c_str() );
+        boost::shared_ptr<asp::BaseEquation> posF = asp::read_equation(input);
+        boost::shared_ptr<asp::BaseEquation> poseF = asp::read_equation(input);
+        input.close();
+        boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( right_image,
+                                                                     posF, poseF ));
+        camera_models.push_back(p);
+      } else {
+        boost::shared_ptr<asp::BaseEquation> posF( new asp::PolyEquation( 0 ) );
+        boost::shared_ptr<asp::BaseEquation> poseF( new asp::PolyEquation( 0 ) );
+        boost::shared_ptr<CameraModel> p( new IsisAdjustCameraModel( right_image,
+                                                                     posF, poseF ));
+        camera_models.push_back(p);
+      }
       input_names.push_back( right_image );
     }
 

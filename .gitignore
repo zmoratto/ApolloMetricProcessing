@@ -30,6 +30,9 @@ tools/src/cnet_usgs_conv
 tools/src/csv_2_isis_adjust
 tools/src/isis_adjust_2_csv
 tools/src/csv_2_match
+tools/src/extract_lola_wac_gcp
+tools/src/extract_lola_wac_gcp2
+tools/src/ip_disparity
 
 tools/scripts/Makefile
 tools/scripts/CMakeFiles
@@ -37,6 +40,8 @@ tools/scripts/*.cmake
 tools/scripts/ip_guided_match
 tools/scripts/homography_fit
 tools/scripts/ba_filter
+tools/scripts/predict_homography
+tools/scripts/kriging_guided_match
 
 tools/thirdparty/ann_1.1.2/lib
 tools/thirdparty/ann_1.1.2/src/*.o

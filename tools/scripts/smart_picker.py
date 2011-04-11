@@ -19,7 +19,7 @@ class App:
     def __init__(self, image_name1, image_name2 ):
         self.root = Tk()
         self.obj_height = self.root.winfo_screenheight()
-        self.obj_width  = self.root.winfo_screenwidth()/2
+        self.obj_width  = self.root.winfo_screenwidth()/2*.75
         self.last_click = [-1,-1]
         self.__tmp_objects = []
         self.__match_draw_objects = []

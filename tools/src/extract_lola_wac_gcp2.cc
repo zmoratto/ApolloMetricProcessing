@@ -27,39 +27,39 @@ using namespace vw;
 // directions so that the direction of the vector in physical space
 // can be properly ascertained.  This is often contained in the (0,0)
 // and (1,1) entry of the georeference transform.
-class ComputeNormalsFunc : public ReturnFixedType<PixelMask<Vector3> >
+class ComputeNormalsFunc : public ReturnFixedType<PixelMask<Vector3f> >
 {
-  double m_u_scale, m_v_scale;
+  float m_u_scale, m_v_scale;
 
 public:
-  ComputeNormalsFunc(double u_scale, double v_scale) :
+  ComputeNormalsFunc(float u_scale, float v_scale) :
     m_u_scale(u_scale), m_v_scale(v_scale) {}
 
   BBox2i work_area() const { return BBox2i(Vector2i(0, 0), Vector2i(1, 1)); }
 
   template <class PixelAccessorT>
-  PixelMask<Vector3> operator() (PixelAccessorT const& accessor_loc) const {
+  PixelMask<Vector3f> operator() (PixelAccessorT const& accessor_loc) const {
     PixelAccessorT acc = accessor_loc;
 
     // Pick out the three altitude values.
     if (is_transparent(*acc))
-      return PixelMask<Vector3>();
-    double alt1 = *acc;
+      return PixelMask<Vector3f>();
+    float alt1 = *acc;
 
     acc.advance(1,0);
     if (is_transparent(*acc))
-      return PixelMask<Vector3>();
-    double alt2 = *acc;
+      return PixelMask<Vector3f>();
+    float alt2 = *acc;
 
     acc.advance(-1,1);
     if (is_transparent(*acc))
-      return PixelMask<Vector3>();
-    double alt3 = *acc;
+      return PixelMask<Vector3f>();
+    float alt3 = *acc;
 
     // Form two orthogonal vectors in the plane containing the three
     // altitude points
-    Vector3 n1(m_u_scale, 0, alt2-alt1);
-    Vector3 n2(0, m_v_scale, alt3-alt1);
+    Vector3f n1(m_u_scale, 0, alt2-alt1);
+    Vector3f n2(0, m_v_scale, alt3-alt1);
 
     // Return the vector normal to the local plane.
     return normalize(cross_prod(n1,n2));
@@ -68,29 +68,25 @@ public:
 
 template <class ViewT>
 UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc> compute_normals(ImageViewBase<ViewT> const& image,
-                                                                                                              double u_scale, double v_scale) {
+                                                                                                              float u_scale, float v_scale) {
   return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc>(edge_extend(image.impl(), ConstantEdgeExtension()),
                                                                                                        ComputeNormalsFunc (u_scale, v_scale));
 }
 
-class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<double> > > {
-  Vector3 m_vec;
+class DotProdFunc : public ReturnFixedType<float > {
+  Vector3f m_vec;
 public:
-  DotProdFunc(Vector3 const& vec) : m_vec(vec) {}
-  PixelMask<PixelGray<double> > operator() (PixelMask<Vector3> const& pix) const {
+  DotProdFunc(Vector3f const& vec) : m_vec(vec) {}
+  float operator() (PixelMask<Vector3f> const& pix) const {
     if (is_transparent(pix))
-      return PixelMask<PixelGray<double> >();
-    else {
-//       std::cout << "Vec1 : " << pix.child() << "   " << norm_2(pix.child()) << "\n";
-//       std::cout << "Vec2 : " << m_vec << "   " << norm_2(m_vec) << "\n";
-//       std::cout << "OVerall: " << dot_prod(pix.child(),m_vec)/(norm_2(pix.child()) * norm_2(m_vec)) << "\n\n";
+      return 0;
+    else
       return dot_prod(pix.child(),m_vec)/(norm_2(pix.child()) * norm_2(m_vec));
-    }
   }
 };
 
 template <class ViewT>
-UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3 const& vec) {
+UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3f const& vec) {
   return UnaryPerPixelView<ViewT, DotProdFunc>(view.impl(), DotProdFunc(vec));
 }
 
@@ -545,7 +541,7 @@ int main( int argc, char* argv[] ) {
                                degree_bbox.min()[0] + degree_bbox.width()/2 );
 
   // Transform defines pixel to point
-  Matrix<double> tx = math::identity_matrix<3>();
+  Matrix3x3 tx = math::identity_matrix<3>();
   tx(0,2) = -size[0]*degree_scale/2;
   tx(1,2) = size[1]*degree_scale/2;
   tx(0,0) = degree_scale;
@@ -566,26 +562,32 @@ int main( int argc, char* argv[] ) {
   ImageViewRef<float> local_dem =
     crop( transform( input, wactx ),
           BBox2i(0,0,size[0],size[1]) );
-  {
-    Timer cow("Test Apollo Lighting: ");
-    write_image( "test.tif", gaussian_filter(channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(local_dem,
-                                                                                                        pixel_meters,pixel_meters),
-                                                                                        sun_position))),1.5),
-                 TerminalProgressCallback("tools","Saving:") );
-  }
-
+  ImageViewRef<float> new_lighting =
+    gaussian_filter(clamp(dot_prod(compute_normals(local_dem,
+                                                   pixel_meters,pixel_meters),
+                                   sun_position)),2);
   // Guess the WAC mosaic lighting
   Vector3 wac_light = math::rotation_z_axis(rotate)*Vector3(-3,0,1);
   wac_light = normalize(wac_light);
   std::cout << "Wac Normal: " << wac_light << "\n";
   std::cout << "Sun Normal: " << sun_position << "\n";
-  {
-    Timer cow("Test WAC Lighting: ");
-    write_image( "wac_test.tif", gaussian_filter(channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(local_dem,
-                                                                                                            pixel_meters, pixel_meters),
-                                                                                            wac_light))),1.5),
-                 TerminalProgressCallback("tools","Saving:") );
-  }
+  ImageViewRef<float> prv_lighting =
+    gaussian_filter(clamp(dot_prod(compute_normals(local_dem,
+                                                   pixel_meters, pixel_meters),
+                                   wac_light)),2);
+
+  write_image("test.tif", prv_lighting,
+              TerminalProgressCallback("tools","Prv Lighting:") );
+  write_image("wac_test.tif", new_lighting,
+              TerminalProgressCallback("tools","New Lighting:") );
+
+  // Loading wac image
+  std::string wac_file =
+    fs::path( input_cube ).replace_extension("wac.tif").string();
+  DiskImageView<float> wac_image( wac_file );
+  write_image("relit.tif",
+              normalize(wac_image * new_lighting * (constant_view(1.0f,size[0],size[1])-prv_lighting)),
+              TerminalProgressCallback("tools","Lighting: ") );
 
   return 0;
 }

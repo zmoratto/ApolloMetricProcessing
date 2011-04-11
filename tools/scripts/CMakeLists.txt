@@ -42,6 +42,15 @@ if ( IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
       ${StereoPipeline_LIBRARIES}
       ${ISIS_LIBRARIES} ${CSPICE_LIBRARIES} ${QT_LIBRARIES} )
     set(SUPPORT_LISTING ${SUPPORT_LISTING} ba_filter)
+
+    # Predict Homography
+    add_executable( predict_homography predict_homography.cc )
+    target_link_libraries( predict_homography
+      ${VW_DEPENDENCIES}
+      ${StereoPipeline_LIBRARIES}
+      ${ISIS_LIBRARIES} ${CSPICE_LIBRARIES} ${QT_LIBRARIES} )
+    set(SUPPORT_LISTING ${SUPPORT_LISTING} predict_homography)
+
   endif()
 endif()
 

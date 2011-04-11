@@ -29,7 +29,7 @@ class App:
         self.measurement2 = []
         self.loaded_measurement1 = []
         self.loaded_measurement2 = []
-        self.transform = []
+        self.transform = identity(3,float)
         self.image_name1 = image_name1
         self.image_name2 = image_name2
         self.match_file = image_name1[:image_name1.rfind(".")] + "__" + image_name2[:image_name2.rfind(".")] + ".match"
@@ -58,7 +58,8 @@ class App:
             for i in ip2:
                 self.loaded_measurement2.append(i*self.image2.scale)
             self.draw_loaded_matches()
-
+            self.find_homography()
+        self.update_transform()
         self.canvas.pack()
 
     def draw_loaded_matches(self):
@@ -79,6 +80,7 @@ class App:
         im = Image.open(image_name)
         [im_w, im_h] = im.size
         im_scale = float(self.obj_width)/float(im_w)
+        self.obj_height = int(im_scale*im_h)
         im = im.resize([int(im_scale*im_w),int(im_scale*im_h)])
         imtk = ImageTk.PhotoImage( im, palette=256 )
         return ReducedImage(imtk, im_scale)
@@ -87,6 +89,9 @@ class App:
         return self.canvas.create_oval(center[0]-radius,center[1]-radius,
                                        center[0]+radius,center[1]+radius,
                                        outline=color)
+
+    def draw_line( self, p1, p2, color ):
+        return self.canvas.create_line(p1[0],p1[1],p2[0],p2[1],fill=color)
 
     def add_measurement(self, coord_a, coord_b ):
         # This will record a measurement and draw the successful match
@@ -104,38 +109,94 @@ class App:
         self.measurement1.append(ip(array(left),5))
         self.measurement2.append(ip(array(right),5))
 
-    def predict_next_location(self):
+    def update_transform( self ):
+        if ( len(self.loaded_measurement1) > 3 ):
+            # Mix our measurements
+            m1 = self.measurement1 + self.loaded_measurement1
+            m2 = self.measurement2 + self.loaded_measurement2
+            self.transform = solve_homography( m1, m2 )
+            self.display_transform()
+            return
         measurements = len(self.measurement1)
-        transform = identity(3,float)
+        self.transform = identity(3,float)
         if ( measurements == 0 ):
             # Can't do anythin
             return
         elif ( measurements == 1 ):
-            transform[0][2] = self.measurement2[0][0] - self.measurement1[0][0]
-            transform[1][2] = self.measurement2[0][1] - self.measurement1[0][1]
+            self.transform[0][2] = self.measurement2[0][0] - self.measurement1[0][0]
+            self.transform[1][2] = self.measurement2[0][1] - self.measurement1[0][1]
         elif ( measurements == 2 ):
-            transform = solve_euclidean(self.measurement1,
-                                        self.measurement2)
+            self.transform = solve_euclidean(self.measurement1,
+                                             self.measurement2)
         elif ( measurements == 3 ):
-            transform = solve_affine(self.measurement1,
-                                     self.measurement2)
+            self.transform = solve_affine(self.measurement1,
+                                          self.measurement2)
         else:
-            transform = solve_homography( self.measurement1,
-                                          self.measurement2 )
+            self.transform = solve_homography( self.measurement1,
+                                               self.measurement2 )
+        self.display_transform()
 
+    def display_transform(self):
+        # Write out the current transform / replace with black rectangle
+        # mytext = "Transform: "+str(self.transform)
+        # self.__tmp_objects.append(self.canvas.create_text([self.obj_width/2,50],text=mytext,fill="green",width=self.obj_width))
+
+        # Draw forward bbox
+        right_bbox = []
+        prediction = dot(self.transform,array([0,0,1]))
+        prediction = prediction/prediction[2]
+        right_bbox.append( array([prediction[0],prediction[1]]) )
+        prediction = dot(self.transform,array([self.obj_width,0,1]))
+        prediction = prediction/prediction[2]
+        right_bbox.append( array([prediction[0],prediction[1]]) )
+        prediction = dot(self.transform,array([self.obj_width,self.obj_height,1]))
+        prediction = prediction/prediction[2]
+        right_bbox.append( array([prediction[0],prediction[1]]) )
+        prediction = dot(self.transform,array([0,self.obj_height,1]))
+        prediction = prediction/prediction[2]
+        right_bbox.append( array([prediction[0],prediction[1]]) )
+
+        trans = array([self.obj_width,0])
+        self.__tmp_objects.append(self.draw_line(right_bbox[0]+trans,right_bbox[1]+trans,"green"));
+        self.__tmp_objects.append(self.draw_line(right_bbox[1]+trans,right_bbox[2]+trans,"green"));
+        self.__tmp_objects.append(self.draw_line(right_bbox[2]+trans,right_bbox[3]+trans,"green"));
+        self.__tmp_objects.append(self.draw_line(right_bbox[3]+trans,right_bbox[0]+trans,"green"));
+
+        left_bbox = []
+        itransform = linalg.pinv( self.transform )
+        prediction = dot(itransform,array([0,0,1]))
+        prediction = prediction/prediction[2]
+        left_bbox.append( array([prediction[0],prediction[1]]) )
+        prediction = dot(itransform,array([self.obj_width,0,1]))
+        prediction = prediction/prediction[2]
+        left_bbox.append( array([prediction[0],prediction[1]]) )
+        prediction = dot(itransform,array([self.obj_width,self.obj_height,1]))
+        prediction = prediction/prediction[2]
+        left_bbox.append( array([prediction[0],prediction[1]]) )
+        prediction = dot(itransform,array([0,self.obj_height,1]))
+        prediction = prediction/prediction[2]
+        left_bbox.append( array([prediction[0],prediction[1]]) )
+        self.__tmp_objects.append(self.draw_line(left_bbox[0],left_bbox[1],"blue"));
+        self.__tmp_objects.append(self.draw_line(left_bbox[1],left_bbox[2],"blue"));
+        self.__tmp_objects.append(self.draw_line(left_bbox[2],left_bbox[3],"blue"));
+        self.__tmp_objects.append(self.draw_line(left_bbox[3],left_bbox[0],"blue"));
+
+    def predict_next_location(self):
+        measurements = len(self.measurement1)
+        if (measurements == 0 and len(self.loaded_measurement1) < 4):
+            return
         prediction = array([0,0])
         if ( self.last_click[0] >= self.obj_width ):
             # Run backwards
-            itransform = linalg.pinv( transform )
+            itransform = linalg.pinv( self.transform )
             prediction = dot(itransform,array([self.last_click[0]-self.obj_width,self.last_click[1],1]));
             prediction = prediction/prediction[2]
         else:
             # Run forwards
-            prediction = dot(transform,array([self.last_click[0],self.last_click[1],1]));
+            prediction = dot(self.transform,array([self.last_click[0],self.last_click[1],1]));
             prediction = prediction/prediction[2]
             prediction[0] = prediction[0] + self.obj_width
         prediction = array([prediction[0],prediction[1]])
-        print prediction;
         if ( measurements < 4 ):
             self.__tmp_objects.append(self.draw_circle(prediction,100-measurements*25,"yellow"))
         else:
@@ -186,15 +247,23 @@ class App:
             self.draw_loaded_matches()
 
     def transform_search_measurements( self ):
+        # Copy and scale transform to real measurements
+        front = array([[self.image1.scale,0,0],[0,self.image1.scale,0],[0,0,1]])
+        back = array([[1/self.image2.scale,0,0],[0,1/self.image2.scale,0],[0,0,1]])
+        xform = dot(back,dot(self.transform,front))
+
+        print "Using xform: "+str(xform)
+
+        # Run cmd
         cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
-        cmd = "ip_guided_match ["+str(self.transform[0][0])+","+str(self.transform[0][1])+","+str(self.transform[0][2])+","+str(self.transform[1][0])+","+str(self.transform[1][1])+","+str(self.transform[1][2])+","+str(self.transform[2][0])+","+str(self.transform[2][1])+","+str(self.transform[2][2])+"] "+self.image_name1+" "+self.image_name2+" --pass1 100"
+        cmd = "ip_guided_match ["+str(xform[0][0])+","+str(xform[0][1])+","+str(xform[0][2])+","+str(xform[1][0])+","+str(xform[1][1])+","+str(xform[1][2])+","+str(xform[2][0])+","+str(xform[2][1])+","+str(xform[2][2])+"] "+self.image_name1+" "+self.image_name2+" --pass1 100"
         print cmd
         os.system(cmd_path+cmd)
         self.reload_measurements()
 
     def ba_filter_measurements( self ):
         cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
-        cmd = "ba_filter --robust-sparse "+self.image_name1+" "+self.image_name2
+        cmd = "ba_filter "+self.image_name1+" "+self.image_name2
         print cmd
         os.system(cmd_path+cmd)
         self.reload_measurements()
@@ -211,6 +280,44 @@ class App:
         print cmd
         os.system(cmd)
         self.reload_measurements()
+
+    def find_homography( self ):
+        # Forces a solve
+        self.save_measurements()
+        cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
+        p = subprocess.Popen(cmd_path+"homography_fit "+self.match_file,
+                             shell=True,stdout=subprocess.PIPE);
+        cmd_return = p.stdout.readline().strip()
+        text = cmd_return[cmd_return.find(":")+13:].strip("((").strip("))").replace(")(",",").split(",")
+        solution = identity(3,float)
+        solution[0,0:3] = [float(text[0]), float(text[1]), float(text[2])]
+        solution[1,0:3] = [float(text[3]), float(text[4]), float(text[5])]
+        solution[2,0:3] = [float(text[6]), float(text[7]), float(text[8])]
+        print "Found: "+str(solution)
+        # scale transform to screen
+        front = array([[1/self.image1.scale,0,0],[0,1/self.image1.scale,0],[0,0,1]])
+        back = array([[self.image2.scale,0,0],[0,self.image2.scale,0],[0,0,1]])
+        self.transform = dot(back,dot(solution,front))
+        self.display_transform()
+
+    def predict_homography( self ):
+        cmd_path = os.path.realpath(__file__)[:-19]+"libexec/"
+        cmd = cmd_path+"predict_homography "+self.image_name1+" "+self.image_name2
+        p = subprocess.Popen( cmd, shell=True, stdout=subprocess.PIPE );
+        p.stdout.readline()
+        p.stdout.readline()
+        cmd_return = p.stdout.readline().strip()
+        text = cmd_return[cmd_return.find(":")+13:].strip("((").strip("))").replace(")(",",").split(",")
+        solution = identity(3,float)
+        solution[0,0:3] = [float(text[0]), float(text[1]), float(text[2])]
+        solution[1,0:3] = [float(text[3]), float(text[4]), float(text[5])]
+        solution[2,0:3] = [float(text[6]), float(text[7]), float(text[8])]
+        print "Found: "+str(solution)
+        # scale transform to screen
+        front = array([[1/self.image1.scale,0,0],[0,1/self.image1.scale,0],[0,0,1]])
+        back = array([[self.image2.scale,0,0],[0,self.image2.scale,0],[0,0,1]])
+        self.transform = dot(back,dot(solution,front))
+        self.display_transform()
 
     def key_press(self, event):
         if event.char == 's' or event.char == 'S':
@@ -231,6 +338,10 @@ class App:
             self.kriging_search_measurements()
         elif event.char == 'e' or event.char == 'E':
             self.equalize_measurements()
+        elif event.char == 'p' or event.char == 'P':
+            self.predict_homography()
+        elif event.char == 'h' or event.char == 'H':
+            self.find_homography()
 
     def button1_click(self, event):
         # Button 1 callback
@@ -251,15 +362,7 @@ class App:
             self.last_click = [-1, -1]
             for i in self.__tmp_objects:
                 self.canvas.delete(i)
-            if (len(self.measurement1) > 3):
-                self.transform = solve_homography(self.measurement1,
-                                                  self.measurement2)
-                front = array([[self.image1.scale,0,0],[0,self.image1.scale,0],[0,0,1]])
-                back = array([[1/self.image2.scale,0,0],[0,1/self.image2.scale,0],[0,0,1]])
-                self.transform = dot(back,dot(self.transform,front))
-                mytext = "Transform: "+str(self.transform)
-                self.__tmp_objects.append(self.canvas.create_text([self.obj_width/2,50],text=mytext,fill="green",width=self.obj_width))
-
+            self.update_transform()
 
 def main():
     if not sys.argv[1:]:

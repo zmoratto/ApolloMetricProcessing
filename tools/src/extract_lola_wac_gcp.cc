@@ -286,13 +286,13 @@ int main( int argc, char* argv[] ) {
         // Actually appending to the Control Network.
         ba::ControlPoint cpoint(ba::ControlPoint::GroundControlPoint);
         cpoint.set_position(cartography::LonLatRadToXYZFunctor()(Vector3(lonlat[0],lonlat[1],radius)));
-        cpoint.set_sigma(Vector3(300,300,300));
+        double sigma = 160 * amc_ip[i].scale;
+        cpoint.set_sigma(Vector3(sigma,sigma,sigma));
         ba::ControlMeasure cm( amc_ip[i].x, amc_ip[i].y, 1, 1,
                                ba::ControlMeasure::Automatic );
         cm.set_serial( serial );
         cm.set_image_id( image_id );
         cpoint.add_measure( cm );
-        //std::cout << "Added:\n" << cm << "\n" << cpoint << "\n";
         cnet.add_control_point( cpoint );
       }
     }

@@ -1,5 +1,5 @@
 #include <vw/Core.h>
-#include <vw/Camera/PinholeModel.h>
+#include <vw/Camera.h>
 #include <boost/foreach.hpp>
 #include <asp/IsisIO.h>
 #include <boost/program_options.hpp>
@@ -7,17 +7,98 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <vw/Math/EulerAngles.h>
+#include <vw/FileIO.h>
+#include <vw/Image.h>
 
 using namespace vw;
 using namespace camera;
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
+struct CAHVOptimizeFunctor : public math::LeastSquaresModelBase<CAHVOptimizeFunctor> {
+  typedef Vector<double,18> result_type;
+  typedef Vector<double,9>  domain_type;
+  typedef Matrix<double>  jacobian_type;
+
+  CameraModel* m_cam;
+  const std::vector<Vector2> m_measure;
+  CAHVOptimizeFunctor(CameraModel* cam,
+                      std::vector<Vector2> const& measure ) : m_cam(cam), m_measure(measure) {}
+
+  inline result_type operator()( domain_type const& x ) const {
+    CAHVModel cahv(m_cam->camera_center(Vector2()),
+                   subvector(x,0,3), subvector(x,3,3), subvector(x,6,3) );
+    cahv.A = normalize(cahv.A);
+    result_type output;
+    for ( size_t i = 0; i < 9; i++ )
+      subvector(output,2*i,2) = m_measure[i] -
+        cahv.point_to_pixel(cahv.C + 1000*m_cam->pixel_to_vector(m_measure[i]) );
+    return output;
+  }
+};
+
+CAHVModel linearize_camera( CameraModel* cam, Vector2i const& size ) {
+  CAHVModel output;
+  Vector2 center_px = (size - Vector2(1,1))/2.0;
+  output.C = cam->camera_center(Vector2());
+  output.A = cam->pixel_to_vector( center_px );
+  output.H =
+    normalize(cross_prod(cam->pixel_to_vector(center_px+Vector2(0,1)),
+                         cam->pixel_to_vector(center_px)));
+  output.V =
+    normalize(cross_prod(cam->pixel_to_vector(center_px),
+                         cam->pixel_to_vector(center_px+Vector2(1,0))));
+
+  double h_angle =
+    M_PI/2 - acos(dot_prod(cam->pixel_to_vector(Vector2(size[0]-1,center_px[1])),
+                           output.H));
+  double h_focal = size[0]*0.5/tan(h_angle);
+
+  double v_angle =
+    M_PI/2 - acos(dot_prod(cam->pixel_to_vector(Vector2(center_px[0],size[1]-1)),
+                           output.V));
+  double v_focal = size[1]*0.5/tan(v_angle);
+
+
+  output.H = Vector3(-(size[0]-1)/2,0,h_focal);
+  output.V = Vector3(-(size[1]-1)/2,0,v_focal);
+
+  std::vector<Vector2> input(9);
+  input[0] = Vector2();
+  input[1] = Vector2(size[0]/2,0);
+  input[2] = Vector2(size[0]-1,0);
+  input[3] = Vector2(size[0]-1,size[1]/2);
+  input[4] = Vector2(size[0]-1,size[1]-1);
+  input[5] = Vector2(size[0]/2,size[1]-1);
+  input[6] = Vector2(0        ,size[1]-1);
+  input[7] = Vector2(0        ,size[1]/2);
+  input[8] = center_px;
+
+  Vector<double,9> seed;
+  subvector(seed,0,3) = output.A;
+  subvector(seed,3,3) = output.H;
+  subvector(seed,6,3) = output.V;
+  std::cout << "Seed: " << seed << "\n";
+
+  int status;
+  Vector<double> camera =
+    math::levenberg_marquardt( CAHVOptimizeFunctor( cam, input ),
+                               seed, Vector<double,18>(), status );
+  output.A = normalize(subvector(camera,0,3));
+  output.H = subvector(camera,3,3);
+  output.V = subvector(camera,6,3);
+  std::cout << "Status  : " << status << "\n";
+  std::cout << "Error   : " << norm_2( CAHVOptimizeFunctor(cam,input)(camera) ) << "\n";
+
+  return output;
+}
+
 // Interface Code
 int main( int argc, char* argv[] ) {
   std::vector<std::string> input_file_names;
   po::options_description general_options("Options");
   general_options.add_options()
+    ("cahv",   "Produce CAHV models and linearize image")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -52,72 +133,63 @@ int main( int argc, char* argv[] ) {
     vw_out() << "Loaded " << input << " :\n" << isis_model << "\n";
     std::string serial = isis_model.serial_number();
 
-    double pixel_scalar = 22900/isis_model.lines();
-    double PRINCIPAL_POINT_MM = (11450.5-1-pixel_scalar*0.5)/200;
+    const double pixel_scalar = 22900/isis_model.lines();
+    const double PRINCIPAL_POINT_MM = (11450.5-1-pixel_scalar*0.5)/200;
+
+    if ( vm.count("cahv") ) {
+      CAHVModel cahv = linearize_camera(&isis_model,
+                                        Vector2i(isis_model.samples(),
+                                                 isis_model.lines()) );
+      DiskImageView<int16> input_image( input );
+      write_image(fs::change_extension(input,".lin.tif").string(),
+                  camera_transform(normalize(input_image,-32767,32767,0,32767), isis_model, cahv,
+                                   ZeroEdgeExtension(), BilinearInterpolation()));
+      cahv.write( fs::change_extension(input,".cahv").string() );
+      continue;
+    }
 
     PinholeModel pin;
     if ( boost::contains(serial,"APOLLO15") ) {
       vw_out() << "\tApollo 15 Image\n";
 
-      /* This is from a fitting adjustable TSAI
-      double distort[6] = {0.007646500298509824,-0.01743067138801845,0.00980946292640812,-2.98092556225311e-05,-1.339089765674149e-05,-1.221974557659228e-05};
-      VectorProxy<double,6> distort_v(distort);
-      pin = PinholeModel( isis_model.camera_center(),
-                          isis_model.camera_pose().rotation_matrix(),
-                          3802.7,3802.7,2861.573652036419,2861.768161103493,
-                          AdjustableTsaiLensDistortion(distort_v) );
-      pin.set_coordinate_frame( pin.coordinate_frame_u_direction(),
-                                -pin.coordinate_frame_v_direction(),
-                                pin.coordinate_frame_w_direction() );
-      */
-      pin = PinholeModel( isis_model.camera_center(),
-                          isis_model.camera_pose().rotation_matrix(),
-                          76.054, 76.054, PRINCIPAL_POINT_MM, PRINCIPAL_POINT_MM,
-                          BrownConradyDistortion(Vector2(-0.006,-0.002),
-                                                 Vector3(-.13361854e-5,
-                                                         0.52261757e-9,
-                                                         -0.50728336e-13),
-                                                 Vector2(-.54958195e-6,
-                                                         -.46089420e-10),
-                                                 2.9659070) );
+        pin = PinholeModel( isis_model.camera_center(),
+                            isis_model.camera_pose().rotation_matrix(),
+                            76.054, 76.054, PRINCIPAL_POINT_MM, PRINCIPAL_POINT_MM,
+                            BrownConradyDistortion(Vector2(-0.006,-0.002),
+                                                   Vector3(-.13361854e-5,
+                                                           0.52261757e-9,
+                                                           -0.50728336e-13),
+                                                   Vector2(-.54958195e-6,
+                                                           -.46089420e-10),
+                                                   2.9659070) );
+
     } else if ( boost::contains(serial,"APOLLO16") ) {
       vw_out() << "\tApollo 16 Image\n";
-      /*
-      double distort[6] = {0.007872316259470486,-0.01786199111078625,0.01016057676230708,5.272930530615576e-06,1.033098038016087e-05,-5.993217765157361e-06};
-      VectorProxy<double,6> distort_v(distort);
-      pin = PinholeModel( isis_model.camera_center(),
-                          isis_model.camera_pose().rotation_matrix(),
-                          3796.8,3796.8,2861.397448790403,2861.681737683683,
-                          AdjustableTsaiLensDistortion(distort_v) );
-      pin.set_coordinate_frame( pin.coordinate_frame_u_direction(),
-                                -pin.coordinate_frame_v_direction(),
-                                pin.coordinate_frame_w_direction() );
-      */
-      pin = PinholeModel( isis_model.camera_center(),
-                          isis_model.camera_pose().rotation_matrix(),
-                          75.908, 75.908, PRINCIPAL_POINT_MM, PRINCIPAL_POINT_MM,
-                          BrownConradyDistortion(Vector2(-0.010,-0.004),
-                                                 Vector3(-0.13678194e-5,
-                                                         0.53824020e-9,
-                                                         -0.52793282e-13),
-                                                 Vector2(0.12275363e-5,
-                                                         -0.24596243e-9),
-                                                 1.8859721) );
+
+        pin = PinholeModel( isis_model.camera_center(),
+                            isis_model.camera_pose().rotation_matrix(),
+                            75.908, 75.908, PRINCIPAL_POINT_MM, PRINCIPAL_POINT_MM,
+                            BrownConradyDistortion(Vector2(-0.010,-0.004),
+                                                   Vector3(-0.13678194e-5,
+                                                           0.53824020e-9,
+                                                           -0.52793282e-13),
+                                                   Vector2(0.12275363e-5,
+                                                           -0.24596243e-9),
+                                                   1.8859721) );
+
     } else if ( boost::contains(serial,"APOLLO17") ) {
       vw_out() << "\tApollo 17 Image\n";
 
-      pin = PinholeModel( isis_model.camera_center(),
-                          isis_model.camera_pose().rotation_matrix(),
-                          75.8069, 75.8069, PRINCIPAL_POINT_MM, PRINCIPAL_POINT_MM,
-                          BrownConradyDistortion(Vector2(0.0074, 0.0094),
-                                                 Vector3(-0.1278842e-5,
-                                                         0.5264148e-9,
-                                                         -0.5259516e-13),
-                                                 Vector2(0.3821279e-6,
-                                                         0.1168324e-19),
-                                                 3.371325) );
-
-
+        pin = PinholeModel( isis_model.camera_center(),
+                            isis_model.camera_pose().rotation_matrix(),
+                            75.8069, 75.8069, PRINCIPAL_POINT_MM, PRINCIPAL_POINT_MM,
+                            BrownConradyDistortion(Vector2(0.0074, 0.0094),
+                                                   Vector3(-0.1278842e-5,
+                                                           0.5264148e-9,
+                                                           -0.5259516e-13),
+                                                   Vector2(0.3821279e-6,
+                                                           0.1168324e-19),
+                                                   3.371325) );
     }
     pin.set_pixel_pitch(pixel_scalar*0.005);
     pin.set_coordinate_frame( Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1) );

@@ -37,6 +37,26 @@ load_camera( std::string const& cube ) {
   return result;
 }
 
+Vector3 datum_intersection( cartography::Datum const& datum,
+                            boost::shared_ptr<CameraModel> model,
+                            Vector2 const& pix ) {
+  // Create XYZ point against moon
+  Vector3 ccenter = model->camera_center( pix );
+  Vector3 cpoint  = model->pixel_to_vector( pix );
+  double radius_2 = datum.semi_major_axis() *
+    datum.semi_major_axis();
+  double alpha = -dot_prod(ccenter, cpoint );
+  Vector3 projection = ccenter + alpha*cpoint;
+  if ( norm_2_sqr(projection) > radius_2 ) {
+    // did not intersect
+    return Vector3();
+  }
+
+  alpha -= sqrt( radius_2 -
+                 norm_2_sqr(projection) );
+  return ccenter + alpha * cpoint;
+}
+
 int main( int argc, char** argv ) {
 
   try {
@@ -105,21 +125,10 @@ int main( int argc, char** argv ) {
       for ( int32 j = 0; j < 5; j++ ) {
         int32 sj = j * left.second[1]/5;
 
-        // Create XYZ point against moon
-        Vector3 ccenter = left.first->camera_center( Vector2(si,sj) );
-        Vector3 cpoint  = left.first->pixel_to_vector( Vector2(si,sj) );
-        double radius_2 = datum.semi_major_axis() *
-          datum.semi_major_axis();
-        double alpha = -dot_prod(ccenter, cpoint );
-        Vector3 projection = ccenter + alpha*cpoint;
-        if ( norm_2_sqr(projection) > radius_2 ) {
-          // did not intersect
+        Vector3 intersection =
+          datum_intersection( datum, left.first, Vector2(si,sj) );
+        if ( intersection == Vector3() )
           continue;
-        }
-
-        alpha -= sqrt( radius_2 -
-                       norm_2_sqr(projection) );
-        Vector3 intersection = ccenter + alpha * cpoint;
 
         Vector2 other = right.first->point_to_pixel( intersection );
         if ( !BBox2i(0,0,right.second[0],right.second[1]).contains(other) )
@@ -135,21 +144,10 @@ int main( int argc, char** argv ) {
       for ( uint32 j = 0; j < 5; j++ ) {
         int32 sj = j * right.second[1]/5;
 
-        // Create XYZ point against moon
-        Vector3 ccenter = right.first->camera_center( Vector2(si,sj) );
-        Vector3 cpoint  = right.first->pixel_to_vector( Vector2(si,sj) );
-        double radius_2 = datum.semi_major_axis() *
-          datum.semi_major_axis();
-        double alpha = -dot_prod(ccenter, cpoint );
-        Vector3 projection = ccenter + alpha*cpoint;
-        if ( norm_2_sqr(projection) > radius_2 ) {
-          // did not intersect
+        Vector3 intersection =
+          datum_intersection( datum, right.first, Vector2(si,sj) );
+        if ( intersection == Vector3() )
           continue;
-        }
-
-        alpha -= sqrt( radius_2 -
-                       norm_2_sqr(projection) );
-        Vector3 intersection = ccenter + alpha * cpoint;
 
         Vector2 other = left.first->point_to_pixel( intersection );
         if ( !BBox2i(0,0,left.second[0],left.second[1]).contains(other) )
@@ -159,10 +157,52 @@ int main( int argc, char** argv ) {
       }
     }
 
+    std::vector<Vector3> copy( ip1 );
+    BOOST_FOREACH( Vector3 const& i, copy ) {
+      Vector3 intersection = datum_intersection( datum, left.first, Vector2(i[0]+5,i[1]) );
+      if ( intersection != Vector3() ) {
+        Vector2 other = right.first->point_to_pixel( intersection );
+        if ( BBox2i(0,0,right.second[0],right.second[1]).contains(other) ) {
+          ip1.push_back( i + Vector3(5,0,0) );
+          ip2.push_back( Vector3(other[0],other[1],1) );
+        }
+      }
+
+      intersection = datum_intersection( datum, left.first, Vector2(i[0],i[1]+5) );
+      if ( intersection != Vector3() ) {
+        Vector2 other = right.first->point_to_pixel( intersection );
+        if ( BBox2i(0,0,right.second[0],right.second[1]).contains(other) ) {
+          ip1.push_back( i + Vector3(0,5,0) );
+          ip2.push_back( Vector3(other[0],other[1],1) );
+        }
+      }
+
+      /*
+      intersection = datum_intersection( datum, left.first, Vector2(i[0]-5,i[1]) );
+      if ( intersection != Vector3() ) {
+        Vector2 other = right.first->point_to_pixel( intersection );
+        if ( BBox2i(0,0,right.second[0],right.second[1]).contains(other) ) {
+          ip1.push_back( i + Vector3(-5,0,0) );
+          ip2.push_back( Vector3(other[0],other[1],1) );
+        }
+      }
+
+
+      intersection = datum_intersection( datum, left.first, Vector2(i[0],i[1]-5) );
+      if ( intersection != Vector3() ) {
+        Vector2 other = right.first->point_to_pixel( intersection );
+        if ( BBox2i(0,0,right.second[0],right.second[1]).contains(other) ) {
+          ip1.push_back( i + Vector3(0,-5,0) );
+          ip2.push_back( Vector3(other[0],other[1],1) );
+        }
+      }
+      */
+    }
+
+    // Pick out 4
     typedef math::HomographyFittingFunctor hfit_func;
-    typedef math::AffineFittingFunctor afit_func;
-    Matrix<double> affine = afit_func()(ip1,ip2);
-    Matrix<double> homogrphy = hfit_func()(ip1,ip2,affine);
+    math::RandomSampleConsensus<hfit_func, math::InterestPointErrorMetric> ransac( hfit_func(), math::InterestPointErrorMetric(), 10 );
+    Matrix<double> homogrphy = ransac( ip1, ip2 );
     std::cout << "M: " << homogrphy << "\n";
   } ASP_STANDARD_CATCHES;
 

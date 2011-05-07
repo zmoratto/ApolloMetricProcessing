@@ -1,4 +1,4 @@
-#!/opt/local/bin/python2.6
+#!/usr/bin/env python2.7
 
 from Tkinter import *
 import Image, ImageTk, sys, os
@@ -18,8 +18,9 @@ class ReducedImage:
 class App:
     def __init__(self, image_name1, image_name2 ):
         self.root = Tk()
+        self.root.resizable(width=True,height=True)
         self.obj_height = self.root.winfo_screenheight()
-        self.obj_width  = self.root.winfo_screenwidth()/2*.75
+        self.obj_width  = self.root.winfo_screenwidth()/2*0.8
         self.last_click = [-1,-1]
         self.__tmp_objects = []
         self.__match_draw_objects = []
@@ -33,6 +34,7 @@ class App:
         self.image_name1 = image_name1
         self.image_name2 = image_name2
         self.match_file = image_name1[:image_name1.rfind(".")] + "__" + image_name2[:image_name2.rfind(".")] + ".match"
+        print "Width height: %i %i\n" % (self.obj_width, self.obj_height)
 
         # Loading up input images
         self.image1 = self.load_image( image_name1 )
@@ -59,8 +61,10 @@ class App:
                 self.loaded_measurement2.append(i*self.image2.scale)
             self.draw_loaded_matches()
             self.find_homography()
-        self.update_transform()
+            self.update_transform()
         self.canvas.pack()
+        if ( not os.path.exists(self.match_file) ):
+            self.predict_homography()
 
     def draw_loaded_matches(self):
         for i in self.__match_draw_objects:
@@ -234,6 +238,7 @@ class App:
         self.loaded_measurement2 = []
         self.draw_loaded_matches()
         os.system("rm "+self.match_file)
+        self.update_transform()
 
     def reload_measurements( self ):
         self.loaded_measurement1 = []
@@ -309,9 +314,13 @@ class App:
         cmd_return = p.stdout.readline().strip()
         text = cmd_return[cmd_return.find(":")+13:].strip("((").strip("))").replace(")(",",").split(",")
         solution = identity(3,float)
-        solution[0,0:3] = [float(text[0]), float(text[1]), float(text[2])]
-        solution[1,0:3] = [float(text[3]), float(text[4]), float(text[5])]
-        solution[2,0:3] = [float(text[6]), float(text[7]), float(text[8])]
+        try:
+            solution[0,0:3] = [float(text[0]), float(text[1]), float(text[2])]
+            solution[1,0:3] = [float(text[3]), float(text[4]), float(text[5])]
+            solution[2,0:3] = [float(text[6]), float(text[7]), float(text[8])]
+        except ValueError:
+            print "Unable to predict homography.\n"
+            return
         print "Found: "+str(solution)
         # scale transform to screen
         front = array([[1/self.image1.scale,0,0],[0,1/self.image1.scale,0],[0,0,1]])

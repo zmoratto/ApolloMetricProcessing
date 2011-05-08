@@ -147,8 +147,8 @@ int main(int argc, char** argv) {
 
   po::options_description general_options("Options");
   general_options.add_options()
-    ("sigma,s", po::value(&sigma)->default_value(50), "Search region in pixels")
-    ("kernel,k", po::value(&kernel)->default_value(19), "Kernel size")
+    ("sigma,s", po::value(&sigma)->default_value(12), "Search region in pixels")
+    ("kernel,k", po::value(&kernel)->default_value(17), "Kernel size")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -183,10 +183,17 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if ( left.empty() || right.empty() ) {
+  if ( left.empty() ||
+       (right.empty() && !boost::contains(left,".match") ) ) {
     vw_out() << "Error: Must specify at least two input files!" << std::endl << std::endl;
     vw_out() << usage.str();
     return 1;
+  } else if ( right.empty() ) {
+    size_t split = left.find("__");
+    right = left.substr(split+2,left.size()-2-split);
+    left =  left.substr(0,split);
+    left =  left+".tif";
+    right = fs::path(right).replace_extension("tif").string();
   }
 
   // Load in camera models
@@ -199,7 +206,13 @@ int main(int argc, char** argv) {
     typedef std::pair<boost::shared_ptr<CameraModel>, Vector2i> CameraData;
     CameraData left_cam =  load_camera( left_cube );
     CameraData right_cam = load_camera( right_cube );
-    homography = predict_homography( left_cam, right_cam );
+    try {
+      homography = predict_homography( left_cam, right_cam );
+    } catch ( ArgumentErr const& e ) {
+      std::cout << "Unable to align input images: "
+                << e.what() << "\n";
+      return 1;
+    }
   }
   std::cout << "Homography: " << homography << "\n";
 

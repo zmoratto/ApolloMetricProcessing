@@ -37,6 +37,79 @@ struct CAHVOptimizeFunctor : public math::LeastSquaresModelBase<CAHVOptimizeFunc
   }
 };
 
+struct PinholeOptimizeFunctor : public math::LeastSquaresModelBase<PinholeOptimizeFunctor> {
+  typedef Vector<double, 18> result_type;
+  typedef Vector<double, 8>  domain_type;
+  typedef Matrix<double>     jacobian_type;
+
+  CameraModel* m_cam;
+  const std::vector<Vector2> m_measure;
+  PinholeOptimizeFunctor( CameraModel* cam,
+                          std::vector<Vector2> const& measure ) : m_cam(cam), m_measure(measure) {}
+
+  inline result_type operator()( domain_type const& x ) const {
+    PinholeModel ccam = to_pinhole( x, m_cam->camera_center(Vector2()) );
+    result_type output;
+    for ( size_t i = 0; i < 9; i++ )
+      subvector(output,2*i,2) = m_measure[i] -
+        ccam.point_to_pixel(m_cam->camera_center(Vector2()) +
+                            1000*m_cam->pixel_to_vector(m_measure[i]));
+    return output;
+  }
+
+  static domain_type to_vec( PinholeModel const& model ) {
+    domain_type vec;
+    Quat pose = model.camera_pose(Vector2());
+    for ( size_t i = 0; i < 4; i++ )
+      vec[i] = pose[i];
+    subvector( vec, 4, 2 ) = model.focal_length();
+    subvector( vec, 6, 2 ) = model.point_offset();
+    return vec;
+  }
+
+  static PinholeModel to_pinhole( domain_type const& vec, Vector3 const& center ) {
+    return PinholeModel( center,
+                         Quat( subvector(vec,0,4) ).rotation_matrix(),
+                         vec[4], vec[5], vec[6], vec[7],
+                         Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1),
+                         NullLensDistortion() );
+  }
+};
+
+PinholeModel linearize_pinhole( CameraModel* cam, Vector2i const& size ) {
+  Vector2 center_px  = (size - Vector2(1,1))/2.0;
+  Vector3 center_vec = cam->pixel_to_vector( center_px );
+  Vector3 off_x_vec  = cam->pixel_to_vector( center_px + Vector2i(10,0) );
+  Vector3 off_y_vec  = cam->pixel_to_vector( center_px + Vector2i(0,10) );
+
+  double fu = 10.0 / tan( acos( dot_prod(off_x_vec, center_vec ) ) );
+  double fv = 10.0 / tan( acos( dot_prod(off_y_vec, center_vec ) ) );
+
+  PinholeModel initial( cam->camera_center(center_px), cam->camera_pose(center_px).rotation_matrix(),
+                        fu, fv, -size[0]/2, -size[1]/2 );
+  initial.set_coordinate_frame( Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1) );
+
+  std::vector<Vector2> input(9);
+  input[0] = Vector2();
+  input[1] = Vector2(size[0]/2,0);
+  input[2] = Vector2(size[0]-1,0);
+  input[3] = Vector2(size[0]-1,size[1]/2);
+  input[4] = Vector2(size[0]-1,size[1]-1);
+  input[5] = Vector2(size[0]/2,size[1]-1);
+  input[6] = Vector2(0        ,size[1]-1);
+  input[7] = Vector2(0        ,size[1]/2);
+  input[8] = center_px;
+
+  int status;
+  Vector<double> seed = PinholeOptimizeFunctor::to_vec( initial );
+  Vector<double> sol =
+    math::levenberg_marquardt( PinholeOptimizeFunctor( cam, input ),
+                               seed, Vector<double,18>(), status );
+  std::cout << "Status  : " << status << "\n";
+  std::cout << "Error   : " << norm_2( PinholeOptimizeFunctor(cam,input)(sol) ) << "\n";
+  return PinholeOptimizeFunctor::to_pinhole( sol, cam->camera_center(center_px) );
+}
+
 CAHVModel linearize_camera( CameraModel* cam, Vector2i const& size ) {
   CAHVModel output;
   Vector2 center_px = (size - Vector2(1,1))/2.0;
@@ -98,7 +171,8 @@ int main( int argc, char* argv[] ) {
   std::vector<std::string> input_file_names;
   po::options_description general_options("Options");
   general_options.add_options()
-    ("cahv",   "Produce CAHV models and linearize image")
+    ("cahv",    "Produce CAHV models and linearize image")
+    ("pinhole", "Produce standard projective matrix camera models")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -145,6 +219,16 @@ int main( int argc, char* argv[] ) {
                   camera_transform(normalize(input_image,-32767,32767,0,32767), isis_model, cahv,
                                    ZeroEdgeExtension(), BilinearInterpolation()));
       cahv.write( fs::change_extension(input,".cahv").string() );
+      continue;
+    } else if ( vm.count("pinhole") ) {
+      PinholeModel pin = linearize_pinhole(&isis_model,
+                                           Vector2i(isis_model.samples(),
+                                                    isis_model.lines()) );
+      DiskImageView<int16> input_image( input );
+      write_image(fs::change_extension(input,".lin.tif").string(),
+                  camera_transform(normalize(input_image,-32767,32767,0,32767), isis_model, pin,
+                                   ZeroEdgeExtension(), BilinearInterpolation()));
+      pin.write( fs::change_extension(input,".pinhole").string() );
       continue;
     }
 

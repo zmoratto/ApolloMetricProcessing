@@ -3,7 +3,7 @@ include_directories(${ApolloMetricProcessing_SOURCE_DIR}/src)
 link_directories(${ApolloMetricProcessing_SOURCE_DIR}/src)
 message(STATUS "Adding ${ApolloMetricProcessing_SOURCE_DIR}/src")
 
-set(VW_DEPENDENCIES ${Boost_LIBRARIES} ${VisionWorkbench_LIBRARIES} ${LAPACK_LIBRARIES})
+set(VW_DEPENDENCIES ${Boost_LIBRARIES} ${VISIONWORKBENCH_LIBRARIES} ${LAPACK_LIBRARIES})
 
 # overlap_check_match
 # - An all in one executable for processing matches fresh

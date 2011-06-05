@@ -20,7 +20,8 @@ class App:
         self.root = Tk()
         self.root.resizable(width=True,height=True)
         self.obj_height = self.root.winfo_screenheight()
-        self.obj_width  = self.root.winfo_screenwidth()/2*0.8
+        #self.obj_width  = self.root.winfo_screenwidth()/2*0.8
+        self.obj_width  = self.root.winfo_screenwidth()/2
         self.last_click = [-1,-1]
         self.__tmp_objects = []
         self.__match_draw_objects = []

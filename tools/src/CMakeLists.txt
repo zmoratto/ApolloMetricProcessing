@@ -16,6 +16,11 @@ target_link_libraries( extract_clementine_gcp
                        ${FLANN_LIBRARIES})
 set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_clementine_gcp)
 
+add_executable( nvm_to_bundlevis nvm_to_bundlevis.cc )
+target_Link_libraries( nvm_to_bundlevis
+  ${VW_DEPENDENCIES} )
+set(PROGRAM_LISTING ${PROGRAM_LISTING} nvm_to_bundlevis)
+
 # VWIP Filter
 # - Remove IPs that are close to reseaus, this is specifically for Apollo
 add_executable( vwip_filter vwip_filter.cc )

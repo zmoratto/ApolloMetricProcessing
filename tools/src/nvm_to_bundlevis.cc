@@ -75,7 +75,8 @@ int main(int argc, char** argv) {
          >> translation[0] >> translation[1] >> translation[2]
          >> buf >> buf;
 
-    Quat q(rotation);
+    Quat q(transpose(rotation));
+    translation = -transpose(rotation)*translation;
     ocam_file << j << "\t" << translation[0] << "\t"
               << translation[1] << "\t" << translation[2] << "\t"
               << q[0] << "\t" << q[1] << "\t" << q[2] << "\t" << q[3] << "\n";

@@ -15,7 +15,7 @@ macro(add_apollo_hidden name)
   add_apollo_executable(${name} ${ARGN})
   message( "Added: " ${name} )
   install(TARGETS ${name} RUNTIME DESTINATION libexec)
-endmacro(add_apollo_tool name)
+endmacro(add_apollo_hidden name)
 
 function(apollo_enable_testing)
   set(GTEST_DIR ${CMAKE_SOURCE_DIR}/thirdparty/gtest)

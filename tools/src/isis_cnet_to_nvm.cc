@@ -15,11 +15,11 @@ namespace fs = boost::filesystem;
 
 struct CameraInfo {
   CameraInfo( std::string const& f,
-              camera::IsisCameraModel const& i,
+              camera::CameraModel* i,
               camera::PinholeModel const& p ) :
     filename(f), isis_model(i), model(p) {}
   std::string filename;
-  camera::IsisCameraModel isis_model;
+  boost::shared_ptr<camera::CameraModel> isis_model; // for copy
   camera::PinholeModel model;
 };
 
@@ -65,12 +65,33 @@ int main( int argc, char* argv[] ) {
   while ( !camlist.eof() ) {
     std::cout << "\t\"" << cam_buffer << "\"\n";
 
-    // Load up camera model and convert
-    camera::IsisCameraModel isis_model( cam_buffer );
-    camera::PinholeModel pin =
-      linearize_pinhole(&isis_model,
-                        Vector2i(isis_model.samples(),
-                                 isis_model.lines()) );
+    camera::PinholeModel pin;
+    camera::CameraModel* isis_model;
+    if ( fs::extension( cam_buffer ) == ".isis_adjust" ) {
+      typedef boost::shared_ptr<asp::BaseEquation> EqnPtr;
+      std::ifstream input( cam_buffer.c_str() );
+      EqnPtr posF  = asp::read_equation(input);
+      EqnPtr poseF = asp::read_equation(input);
+      input.close();
+      camera::IsisAdjustCameraModel* camera =
+        new camera::IsisAdjustCameraModel( fs::change_extension( cam_buffer,
+                                                                 ".cub" ).string(),
+                                           posF, poseF );
+      isis_model = camera;
+      pin =
+        linearize_pinhole(camera,
+                          Vector2i(camera->samples(),
+                                   camera->lines()) );
+    } else {
+      // Load up camera model and convert
+      camera::IsisCameraModel* camera =
+        new camera::IsisCameraModel( cam_buffer );
+      isis_model = camera;
+      pin =
+        linearize_pinhole(camera,
+                          Vector2i(camera->samples(),
+                                   camera->lines()) );
+    }
 
     // Enforcing that the focal lengths are equal (NVM requires it)
     Vector2 focal = pin.focal_length();
@@ -93,8 +114,8 @@ int main( int argc, char* argv[] ) {
     BOOST_FOREACH( ba::ControlMeasure& cm, cp ) {
       CameraInfo* cam = &camera_information[cm.image_id()];
       Vector2 ipx = cm.position();
-      cm.set_position( cam->model.point_to_pixel(cam->isis_model.camera_center(ipx) +
-                                                 cam->isis_model.pixel_to_vector(ipx)) -
+      cm.set_position( cam->model.point_to_pixel(cam->isis_model->camera_center(ipx) +
+                                                 cam->isis_model->pixel_to_vector(ipx)) -
                        cam->model.point_offset() );
     }
   }
@@ -112,8 +133,8 @@ int main( int argc, char* argv[] ) {
     nvm << rot(0,0) << " " << rot(0,1) << " " << rot(0,2) << " "
         << rot(1,0) << " " << rot(1,1) << " " << rot(1,2) << " "
         << rot(2,0) << " " << rot(2,1) << " " << rot(2,2) << " ";
-    Vector3 ctr = rot * (-camera.model.camera_center());
-    nvm << ctr[0] << " " << ctr[1] << " " << ctr[2] << " 0 0\n";
+    Vector3 trans = -(rot * camera.model.camera_center());
+    nvm << trans[0] << " " << trans[1] << " " << trans[2] << " 0 0\n";
   }
   // Writing point measurements
   nvm << cnet.size() - cnet.num_ground_control_points() << "\n";

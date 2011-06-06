@@ -48,7 +48,8 @@ int main(int argc, char** argv) {
   // Output file
   std::ofstream ocam_file("cam.txt", std::ios::out );
   std::ofstream opts_file("pts.txt", std::ios::out );
-  ocam_file << std::setprecision(9);
+  ocam_file << std::setprecision(12);
+  opts_file << std::setprecision(12);
 
   // Load NVM
   std::ifstream file(nvm_file.c_str(), std::ios::in);

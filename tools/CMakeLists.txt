@@ -1,30 +1,37 @@
-message("Configuration Started:")
-message("--------------------------------------------")
 project(ApolloMetricProcessing CXX C)
 cmake_minimum_required(VERSION 2.8)
-set(CMAKE_MODULE_PATH "${ApolloMetricProcessing_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}")
 
-# Setting up RPATH
-set( CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" )
+# Add path for custom modules
+set(CMAKE_MODULE_PATH
+  ${CMAKE_MODULE_PATH}
+  "${ApolloMetricProcessing_SOURCE_DIR}/CMakeModules"
+  )
 
-if(APPLE)
-  set( CMAKE_INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib )
-endif(APPLE)
+set(PACKAGE_VERSION "0.1")
+set(PACKAGE_NAME ApolloMetricProcessing)
+set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
+set(PACKAGE_BUGREPORT "z.m.moratto@nasa.gov")
 
-set( CMAKE_SKIP_RPATH                   FALSE CACHE BOOL "" )
-set( CMAKE_SKIP_BUILD_RPATH             FALSE CACHE BOOL "" )
-set( CMAKE_BUILD_WITH_INSTALL_RPATH     FALSE CACHE BOOL "" )
-set( CMAKE_INSTALL_RPATH_USE_LINK_PATH  TRUE  CACHE BOOL "" )
-
-mark_as_advanced(
-  CMAKE_INSTALL_RPATH
-  CMAKE_SKIP_RPATH
-  CMAKE_SKIP_BUILD_RPATH
-  CMAKE_BUILD_WITH_INSTALL_RPATH
-  CMAKE_INSTALL_RPATH_USE_LINK_PATH
-)
-
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DBOOST_FILESYSTEM_VERSION=2)
+# Custom ApolloMetricProcessing options
+option(ENABLE_RPATHS
+   "Use RPaths in executables to find shared libraries." FALSE)
+if (ENABLE_RPATHS)
+  set(CMAKE_SKIP_RPATH                  FALSE CACHE BOOL "")
+  set(CMAKE_SKIP_BUILD_RPATH            FALSE CACHE BOOL "")
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH    FALSE CACHE BOOL "")
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE  CACHE BOOL "")
+  if(APPLE)
+    set(CMAKE_INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+  endif(APPLE)
+  mark_as_advanced(
+    CMAKE_SKIP_RPATH
+    CMAKE_SKIP_BUILD_RPATH
+    CMAKE_BUILD_WITH_INSTALL_RPATH
+    CMAKE_INSTALL_RPATH
+    CMAKE_INSTALL_RPATH_USE_LINK_PATH
+    )
+endif(ENABLE_RPATHS)
 
 # Building Dep
 if(APPLE)
@@ -36,8 +43,10 @@ else(APPLE)
 endif(APPLE)
 
 # Defining packages
+include(AddApollo)
 find_package(Boost REQUIRED
   COMPONENTS program_options system thread filesystem iostreams)
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DBOOST_FILESYSTEM_VERSION=2)
 find_package(VisionWorkbench REQUIRED
   COMPONENTS core image math fileio camera interestpoint cartography bundleadjustment stereo)
 find_package(LAPACK-eigen)
@@ -47,39 +56,10 @@ find_package(ISIS)
 find_package(CSPICE)
 find_package(Qt4)
 find_package(FLANN)
-find_package(OpenSceneGraph REQUIRED osgViewer osgGA)
+find_package(OpenSceneGraph
+  COMPONENTS osgViewer osgGA)
 
-include_directories(
-  ${Boost_INCLUDE_DIR}
-  ${VISIONWORKBENCH_INCLUDE_DIR}
-  ${LAPACK_INCLUDE_DIR}
-  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/include)
-link_directories(
-  ${Boost_LIBRARY_DIRS}
-  ${VISIONWORKBENCH_LIBRARY_DIRS}
-  ${LAPACK_LIBRARIES_DIR}
-  ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib)
-
-if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR})
-  include_directories(${StereoPipeline_INCLUDE_DIR})
-  link_directories(${StereoPipeline_LIBRARY_DIRS})
-endif()
-
-if (IS_DIRECTORY ${ISIS_INCLUDE_DIR})
-  include_directories(${ISIS_INCLUDE_DIR})
-  link_directories(${ISIS_LIBRARY_DIRS})
-endif()
-
-if (CSPICE_FOUND)
-  include_directories(${CSPICE_INCLUDE_DIR})
-  link_directories(${CSPICE_LIBRARY_DIRS})
-endif()
-
-if (FLANN_FOUND)
-  include_directories(${FLANN_INCLUDE_DIR})
-  link_directories(${FLANN_LIBRARY_DIRS})
-endif()
-
+# Blanket including of QT, move this after we work out which packages truly need this.
 if (QT_FOUND)
   set(QT_MODS "Qt" "Qt3Support" "QtAssistant" "QtCore" "QtDBus" "QtDesigner" "QtGui" "QtHelp" "QtMultimedia" "QtNetwork" "QtOpenGL" "QtScript" "QtScriptTools" "QtSql" "QtSvg" "QtTest" "QtUiTools" "QtWebKit" "QtXml" "QtXmlPatterns")
   foreach( QTBASE ${QT_INCLUDE_DIR} )
@@ -90,7 +70,6 @@ if (QT_FOUND)
     endforeach()
   endforeach()
   include_directories(${QT_INCLUDE_DIR})
-  link_directories(${QT_LIBRARY_DIRS})
 endif()
 
 # Subdirectories

@@ -1,164 +1,105 @@
 # Make sure linker and compiler can find their way
 include_directories(${ApolloMetricProcessing_SOURCE_DIR}/src)
-link_directories(${ApolloMetricProcessing_SOURCE_DIR}/src)
-message(STATUS "Adding ${ApolloMetricProcessing_SOURCE_DIR}/src")
+include_directories(${VISIONWORKBENCH_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
 
-set(VW_DEPENDENCIES ${Boost_LIBRARIES} ${VISIONWORKBENCH_LIBRARIES} ${LAPACK_LIBRARIES})
+set(VISIONWORKBENCH_BASE_LIBRARIES
+  ${Boost_LIBRARIES}
+  ${LAPACK_LIBRARIES}
+  ${VISIONWORKBENCH_CORE_LIBRARY}
+  ${VISIONWORKBENCH_MATH_LIBRARY}
+  ${VISIONWORKBENCH_IMAGE_LIBRARY}
+  ${VISIONWORKBENCH_FILEIO_LIBRARY}
+  )
 
-# overlap_check_match
-# - An all in one executable for processing matches fresh
+set(APOLLO_USED_LIBS
+  ${VISIONWORKBENCH_BASE_LIBRARIES}
+  ${FLANN_LIBRARIES}
+  ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
+  ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
+  ${VISIONWORKBENCH_CARTOGRAPHY_LIBRARY}
+  ${VISIONWORKBENCH_CAMERA_LIBRARY}
+  )
 
-# extract clementine gcps
-# - Executable that registers images to clementine and the provides a gcp
-add_executable( extract_clementine_gcp extract_clementine_gcp.cc )
-target_link_libraries( extract_clementine_gcp
-                       ${VW_DEPENDENCIES}
-                       ${FLANN_LIBRARIES})
-set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_clementine_gcp)
+add_apollo_tool( extract_clementine_gcp extract_clementine_gcp.cc )
+add_apollo_tool( apollo_match apollo_match.cc )
+add_apollo_tool( apollo_bulk_match apollo_bulk_match.cc )
 
-# nvm to bundlevis
-# - Converts and NVM from PBA into bundlevis output
-add_executable( nvm_to_bundlevis nvm_to_bundlevis.cc )
-target_link_libraries( nvm_to_bundlevis
-  ${VW_DEPENDENCIES} )
-set(PROGRAM_LISTING ${PROGRAM_LISTING} nvm_to_bundlevis)
+set(APOLLO_USED_LIBS
+  ${VISIONWORKBENCH_BASE_LIBRARIES}
+  ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
+  )
 
-# isis cnet to nvm
-# - Converts isis camera files and cnets into an NVM
-add_executable( isis_cnet_to_nvm isis_cnet_to_nvm.cc )
-target_link_libraries( isis_cnet_to_nvm
-  ${VW_DEPENDENCIES}
-  ${StereoPipeline_LIBRARIES}
-  ${ISIS_LIBRARIES} ${CSPICE_LIBRARIES}
-  ${QT_LIBRARIES})
-set(PROGRAM_LISTING ${PROGRAM_LISTING} isis_cnet_to_nvm)
+add_apollo_tool( nvm_to_bundlevis nvm_to_bundlevis.cc )
+add_apollo_tool( vwip_filter vwip_filter.cc )
+add_apollo_tool( bulk_match_unpack bulk_match_unpack.cc )
+add_apollo_tool( ip_disparity ip_disparity.cc )
 
-# VWIP Filter
-# - Remove IPs that are close to reseaus, this is specifically for Apollo
-add_executable( vwip_filter vwip_filter.cc )
-target_link_libraries( vwip_filter
-                       ${VW_DEPENDENCIES} )
-set(PROGRAM_LISTING ${PROGRAM_LISTING} vwip_filter)
+if (StereoPipeline_FOUND AND QT_FOUND )
+  include_directories(${StereoPipeline_INCLUDE_DIRS})
+  include_directories(${ISIS_INCLUDE_DIRS})
+  include_directories(${CSPICE_INCLUDE_DIRS})
 
-# Apollo Match
-# - Slightly smarter match that avoids impossible RANSAC fits.
-add_executable( apollo_match apollo_match.cc )
-target_link_libraries( apollo_match
-  ${VW_DEPENDENCIES}
-  ${FLANN_LIBRARIES})
-set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_match)
+  set(APOLLO_USED_LIBS
+    ${VISIONWORKBENCH_BASE_LIBRARIES}
+    ${StereoPipeline_LIBRARIES}
+    ${ISIS_LIBRARIES}
+    ${CSPICE_LIBRARIES}
+    ${QT_LIBRARIES}
+    ${VISIONWORKBENCH_CAMERA_LIBRARY}
+    ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
+    )
 
-# Apollo Bulk Match
-add_executable( apollo_bulk_match apollo_bulk_match.cc )
-target_link_libraries( apollo_bulk_match
-  ${VW_DEPENDENCIES}
-  ${FLANN_LIBRARIES} )
-set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_bulk_match )
+  add_apollo_tool( isis_cnet_to_nvm isis_cnet_to_nvm.cc )
+  add_apollo_tool( apollo_to_pinhole apollo_to_pinhole.cc )
 
-# Bulk Match Unpack
-add_executable( bulk_match_unpack bulk_match_unpack.cc )
-target_link_libraries( bulk_match_unpack
-  ${VW_DEPENDENCIES} )
-set(PROGRAM_LISTING ${PROGRAM_LISTING} bulk_match_unpack )
+  set(APOLLO_USED_LIBS ${APOLLO_USED_LIBS}
+    ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
+    ${VISIONWORKBENCH_CARTOGRAPHY_LIBRARY}
+    )
 
-# IP Disparity
-add_executable( ip_disparity ip_disparity.cc )
-target_link_libraries( ip_disparity
-  ${VW_DEPENDENCIES} )
-set(PROGRAM_LISTING ${PROGRAM_LISTING} ip_disparity )
+  add_apollo_tool( gcp_from_net gcp_from_net.cc )
 
-if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR} )
-  if ( EXISTS ${QT_QMAKE_EXECUTABLE})
+  set(APOLLO_USED_LIBS
+    ${VISIONWORKBENCH_BASE_LIBRARIES}
+    ${StereoPipeline_LIBRARIES}
+    ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
+    )
 
-    # apollo to pinhole
-    # - Converts an Apollo image to pinhole file
-    add_executable( apollo_to_pinhole apollo_to_pinhole.cc )
-    target_link_libraries( apollo_to_pinhole
-      ${VW_DEPENDENCIES}
-      ${StereoPipeline_LIBRARIES}
-      ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
-      ${QT_LIBRARIES})
-    set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_to_pinhole)
+  add_apollo_tool( cnet_usgs_conv cnet_usgs_conv.cc )
+  add_apollo_tool( csv_2_isis_adjust csv_2_isis_adjust.cc )
+  add_apollo_tool( isis_adjust_2_csv isis_adjust_2_csv.cc )
 
-    # GCP from Control Network
-    # - Converts an ISIS style to individual GCPs
-    add_executable( gcp_from_net gcp_from_net.cc )
-    target_link_libraries( gcp_from_net
-      ${VW_DEPENDENCIES}
-      ${StereoPipeline_LIBRARIES}
-      ${ISIS_LIBRARIES}  ${CSPICE_LIBRARIES}
-      ${QT_LIBRARIES})
-    set(PROGRAM_LISTING ${PROGRAM_LISTING} gcp_from_net)
+  set(APOLLO_USED_LIBS
+    ${APOLLO_USED_LIBS}
+    ${VISIONWORKBENCH_STEREO_LIBRARY}
+    ${VISIONWORKBENCH_CARTOGRAPHY_LIBRARY}
+    ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
+    )
 
-    # CNET USGS Conversion
-    add_executable( cnet_usgs_conv cnet_usgs_conv.cc )
-    target_link_libraries( cnet_usgs_conv
-      ${VW_DEPENDENCIES}
-      ${StereoPipeline_LIBRARIES} )
-    set(PROGRAM_LISTING ${PROGRAM_LISTING} cnet_usgs_conv)
+  add_apollo_tool( refine_ip refine_ip.cc )
 
-    # CSV 2 ISIS ADJUST
-    add_executable( csv_2_isis_adjust csv_2_isis_adjust.cc )
-    target_link_libraries( csv_2_isis_adjust
-      ${VW_DEPENDENCIES}
-      ${StereoPipeline_LIBRARIES} )
-    set(PROGRAM_LISTING ${PROGRAM_LISTING} csv_2_isis_adjust)
+  set(APOLLO_USED_LIBS
+    ${VISIONWORKBENCH_BASE_LIBRARIES}
+    ${StereoPipeline_LIBRARIES}
+    ${FLANN_LIBRARIES}
+    ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
+    ${VISIONWORKBENCH_CARTOGRAPHY_LIBRARY}
+    ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
+    )
 
-    # ISIS ADJUST 2 CSV
-    add_executable( isis_adjust_2_csv isis_adjust_2_csv.cc )
-    target_link_libraries( isis_adjust_2_csv
-      ${VW_DEPENDENCIES}
-      ${StereoPipeline_LIBRARIES} )
-    set(PROGRAM_LISTING ${PROGRAM_LISTING} isis_adjust_2_csv)
+  add_apollo_tool( extract_lola_wac_gcp extract_lola_wac_gcp.cc )
+  add_apollo_tool( extract_lola_wac_gcp2 extract_lola_wac_gcp2.cc )
 
-    # Apollo Guided Match
-    # add_executable( apollo_guided_match apollo_guided_match.cc )
-    # target_link_libraries( apollo_guided_match
-    #   ${VW_DEPENDENCIES}
-    #   ${StereoPipeline_LIBRARIES}
-    #   ${FLANN_LIBRARIES} )
-    # set(PROGRAM_LISTING ${PROGRAM_LISTING} apollo_guided_match)
-
-    # Extract LOLA and WAC GCP
-    add_executable( extract_lola_wac_gcp extract_lola_wac_gcp.cc )
-    target_link_libraries( extract_lola_wac_gcp
-      ${VW_DEPENDENCIES}
-      ${StereoPipeline_LIBRARIES}
-      ${FLANN_LIBRARIES})
-    set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp)
-
-    # Extract LOLA and WAC GCP
-    add_executable( extract_lola_wac_gcp2 extract_lola_wac_gcp2.cc )
-    target_link_libraries( extract_lola_wac_gcp2
-      ${VW_DEPENDENCIES}
-      ${StereoPipeline_LIBRARIES}
-      ${FLANN_LIBRARIES})
-    set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_lola_wac_gcp2)
-
-    # Refine IP
-    add_executable( refine_ip refine_ip.cc )
-    target_link_libraries( refine_ip
-      ${VW_DEPENDENCIES}
-      ${StereoPipeline_LIBRARIES})
-    set(PROGRAM_LISTING ${PROGRAM_LISTING} refine_ip )
-
-  endif()
 endif()
 
 if (OPENSCENEGRAPH_FOUND)
+
   include_directories( ${OPENSCENEGRAPH_INCLUDE_DIRS} )
-  add_executable( pc_display pc_display.cc )
-  target_link_libraries( pc_display
-    ${VW_DEPENDENCIES}
-    ${OPENSCENEGRAPH_LIBRARIES})
-  set(PROGRAM_LISTING ${PROGRAM_LISTING} pc_display)
-endif(OPENSCENEGRAPH_FOUND)
+  set(APOLLO_USED_LIBS
+    ${VISIONWORKBENCH_BASE_LIBRARIES}
+    ${OPENSCENEGRAPH_LIBRARIES}
+    )
+  add_apollo_tool( pc_display pc_display.cc )
 
-message("Installing to BIN:")
-foreach( PROGRAM ${PROGRAM_LISTING} )
-
-  message( "\t" ${PROGRAM})
-  install( TARGETS ${PROGRAM}
-    DESTINATION bin )
-
-endforeach( PROGRAM )
+endif()

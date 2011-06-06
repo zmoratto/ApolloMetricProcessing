@@ -1,7 +1,7 @@
 message("Configuration Started:")
 message("--------------------------------------------")
 project(ApolloMetricProcessing CXX C)
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH "${ApolloMetricProcessing_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}")
 
 # Setting up RPATH
@@ -47,6 +47,7 @@ find_package(ISIS)
 find_package(CSPICE)
 find_package(Qt4)
 find_package(FLANN)
+find_package(OpenSceneGraph REQUIRED osgViewer osgGA)
 
 include_directories(
   ${Boost_INCLUDE_DIR}

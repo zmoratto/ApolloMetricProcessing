@@ -145,6 +145,15 @@ if (IS_DIRECTORY ${StereoPipeline_INCLUDE_DIR} )
   endif()
 endif()
 
+if (OPENSCENEGRAPH_FOUND)
+  include_directories( ${OPENSCENEGRAPH_INCLUDE_DIRS} )
+  add_executable( pc_display pc_display.cc )
+  target_link_libraries( pc_display
+    ${VW_DEPENDENCIES}
+    ${OPENSCENEGRAPH_LIBRARIES})
+  set(PROGRAM_LISTING ${PROGRAM_LISTING} pc_display)
+endif(OPENSCENEGRAPH_FOUND)
+
 message("Installing to BIN:")
 foreach( PROGRAM ${PROGRAM_LISTING} )
 

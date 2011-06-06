@@ -24,6 +24,8 @@ mark_as_advanced(
   CMAKE_INSTALL_RPATH_USE_LINK_PATH
 )
 
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DBOOST_FILESYSTEM_VERSION=2)
+
 # Building Dep
 if(APPLE)
   execute_process( COMMAND make macosx-g++
@@ -43,17 +45,17 @@ find_package(StereoPipeline
   COMPONENTS core isisio)
 find_package(ISIS)
 find_package(CSPICE)
-find_package(QT)
+find_package(Qt4)
 find_package(FLANN)
 
 include_directories(
   ${Boost_INCLUDE_DIR}
-  ${VisionWorkbench_INCLUDE_DIR}
+  ${VISIONWORKBENCH_INCLUDE_DIR}
   ${LAPACK_INCLUDE_DIR}
   ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/include)
 link_directories(
   ${Boost_LIBRARY_DIRS}
-  ${VisionWorkbench_LIBRARY_DIRS}
+  ${VISIONWORKBENCH_LIBRARY_DIRS}
   ${LAPACK_LIBRARIES_DIR}
   ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2/lib)
 
@@ -94,4 +96,3 @@ endif()
 add_subdirectory(src)
 add_subdirectory(scripts)
 
-set(CMAKE_BUILD_TYPE Release)

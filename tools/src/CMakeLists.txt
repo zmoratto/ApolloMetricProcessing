@@ -16,10 +16,22 @@ target_link_libraries( extract_clementine_gcp
                        ${FLANN_LIBRARIES})
 set(PROGRAM_LISTING ${PROGRAM_LISTING} extract_clementine_gcp)
 
+# nvm to bundlevis
+# - Converts and NVM from PBA into bundlevis output
 add_executable( nvm_to_bundlevis nvm_to_bundlevis.cc )
-target_Link_libraries( nvm_to_bundlevis
+target_link_libraries( nvm_to_bundlevis
   ${VW_DEPENDENCIES} )
 set(PROGRAM_LISTING ${PROGRAM_LISTING} nvm_to_bundlevis)
+
+# isis cnet to nvm
+# - Converts isis camera files and cnets into an NVM
+add_executable( isis_cnet_to_nvm isis_cnet_to_nvm.cc )
+target_link_libraries( isis_cnet_to_nvm
+  ${VW_DEPENDENCIES}
+  ${StereoPipeline_LIBRARIES}
+  ${ISIS_LIBRARIES} ${CSPICE_LIBRARIES}
+  ${QT_LIBRARIES})
+set(PROGRAM_LISTING ${PROGRAM_LISTING} isis_cnet_to_nvm)
 
 # VWIP Filter
 # - Remove IPs that are close to reseaus, this is specifically for Apollo

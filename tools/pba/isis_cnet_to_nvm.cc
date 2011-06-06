@@ -7,7 +7,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 
-#include "camera_fitting.h"
+#include "../src/camera_fitting.h"
 
 using namespace vw;
 namespace po = boost::program_options;

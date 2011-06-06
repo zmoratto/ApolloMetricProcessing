@@ -30,7 +30,6 @@ set(APOLLO_USED_LIBS
   ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
   )
 
-add_apollo_tool( nvm_to_bundlevis nvm_to_bundlevis.cc )
 add_apollo_tool( vwip_filter vwip_filter.cc )
 add_apollo_tool( bulk_match_unpack bulk_match_unpack.cc )
 add_apollo_tool( ip_disparity ip_disparity.cc )
@@ -50,7 +49,6 @@ if (StereoPipeline_FOUND AND QT_FOUND )
     ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
     )
 
-  add_apollo_tool( isis_cnet_to_nvm isis_cnet_to_nvm.cc )
   add_apollo_tool( apollo_to_pinhole apollo_to_pinhole.cc )
 
   set(APOLLO_USED_LIBS ${APOLLO_USED_LIBS}

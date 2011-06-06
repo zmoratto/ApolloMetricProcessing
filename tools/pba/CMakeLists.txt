@@ -1,0 +1,43 @@
+# Make sure linker and compiler can find their way
+include_directories(${ApolloMetricProcessing_SOURCE_DIR}/src)
+include_directories(${VISIONWORKBENCH_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
+
+set(VISIONWORKBENCH_BASE_LIBRARIES
+  ${Boost_LIBRARIES}
+  ${LAPACK_LIBRARIES}
+  ${VISIONWORKBENCH_CORE_LIBRARY}
+  ${VISIONWORKBENCH_MATH_LIBRARY}
+  ${VISIONWORKBENCH_IMAGE_LIBRARY}
+  ${VISIONWORKBENCH_FILEIO_LIBRARY}
+  )
+
+set(APOLLO_USED_LIBS
+  ${VISIONWORKBENCH_BASE_LIBRARIES}
+  ${FLANN_LIBRARIES}
+  ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
+  ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
+  ${VISIONWORKBENCH_CARTOGRAPHY_LIBRARY}
+  ${VISIONWORKBENCH_CAMERA_LIBRARY}
+  ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
+  )
+
+add_apollo_tool( nvm_to_bundlevis nvm_to_bundlevis.cc )
+
+if (StereoPipeline_FOUND AND QT_FOUND )
+  include_directories(${StereoPipeline_INCLUDE_DIRS})
+  include_directories(${ISIS_INCLUDE_DIRS})
+  include_directories(${CSPICE_INCLUDE_DIRS})
+
+  set(APOLLO_USED_LIBS
+    ${VISIONWORKBENCH_BASE_LIBRARIES}
+    ${StereoPipeline_LIBRARIES}
+    ${ISIS_LIBRARIES}
+    ${CSPICE_LIBRARIES}
+    ${QT_LIBRARIES}
+    ${VISIONWORKBENCH_CAMERA_LIBRARY}
+    ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
+    )
+
+  add_apollo_tool( isis_cnet_to_nvm isis_cnet_to_nvm.cc )
+endif()

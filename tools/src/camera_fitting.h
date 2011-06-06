@@ -31,7 +31,7 @@ namespace vw {
 
   struct PinholeOptimizeFunctor : public math::LeastSquaresModelBase<PinholeOptimizeFunctor> {
     typedef Vector<double, 18> result_type;
-    typedef Vector<double, 8>  domain_type;
+    typedef Vector<double, 3>  domain_type;
     typedef Matrix<double>     jacobian_type;
 
     camera::CameraModel* m_cam;
@@ -52,19 +52,15 @@ namespace vw {
 
     static domain_type to_vec( camera::PinholeModel const& model ) {
       domain_type vec;
-      Quat pose = model.camera_pose(Vector2());
-      for ( size_t i = 0; i < 4; i++ )
-        vec[i] = pose[i];
-      subvector( vec, 4, 2 ) = model.focal_length();
-      subvector( vec, 6, 2 ) = model.point_offset();
+      vec[0] = model.focal_length()[0];
+      subvector( vec, 1, 2 ) = model.point_offset();
       return vec;
     }
 
-    static camera::PinholeModel to_pinhole( domain_type const& vec,
-                                            Vector3 const& center ) {
-      return camera::PinholeModel( center,
-                                   Quat( subvector(vec,0,4) ).rotation_matrix(),
-                                   vec[4], vec[5], vec[6], vec[7],
+    camera::PinholeModel to_pinhole( domain_type const& vec,
+                                     Vector3 const& center ) const {
+      return camera::PinholeModel( center, m_cam->camera_pose(Vector2()).rotation_matrix(),
+                                   vec[0], vec[0], vec[1], vec[2],
                                    Vector3(1,0,0), Vector3(0,1,0),
                                    Vector3(0,0,1),
                                    camera::NullLensDistortion() );
@@ -98,12 +94,12 @@ namespace vw {
 
     int status;
     Vector<double> seed = PinholeOptimizeFunctor::to_vec( initial );
+    PinholeOptimizeFunctor model( cam, input );
     Vector<double> sol =
-      math::levenberg_marquardt( PinholeOptimizeFunctor( cam, input ),
-                                 seed, Vector<double,18>(), status );
+      math::levenberg_marquardt( model, seed, Vector<double,18>(), status );
     std::cout << "Status  : " << status << "\n";
     std::cout << "Error   : " << norm_2( PinholeOptimizeFunctor(cam,input)(sol) ) << "\n";
-    return PinholeOptimizeFunctor::to_pinhole( sol, cam->camera_center(center_px) );
+    return model.to_pinhole( sol, cam->camera_center(center_px) );
   }
 
   camera::CAHVModel linearize_camera( camera::CameraModel* cam, Vector2i const& size ) {

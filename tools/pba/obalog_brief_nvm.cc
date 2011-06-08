@@ -13,6 +13,8 @@ namespace po = boost::program_options;
 #include <boost/polygon/polygon.hpp>
 namespace poly = boost::polygon;
 
+#include "../src/camera_fitting.h"
+
 using namespace vw;
 
 typedef poly::polygon_data<float> Polygon;
@@ -246,10 +248,34 @@ int main( int argc, char* argv[] ) {
   }
 
   // Linearize Camera Model
+  camera::PinholeModel linear_camera =
+    linearize_pinhole( camera.get(), image_size );
 
-  // Transform to linearized camera model
+  // Transform measurements to linearized camera models
+  BOOST_FOREACH( ip::InterestPoint& point, ip ) {
+    Vector2 distorted( point.x , point.y );
+    Vector2 undistort =
+      linear_camera.point_to_pixel(camera->camera_center( distorted ) +
+                                   camera->pixel_to_vector( distorted )) -
+      linear_camera.point_offset();
+    point.x = undistort[0];
+    point.y = undistort[1];
+    point.ix = undistort[0];
+    point.iy = undistort[1];
+  }
 
   // Write NVM
+  std::ofstream nvm( fs::change_extension( image_file, ".nvm").string().c_str(),
+                     std::ofstream::out );
+  nvm << std::setprecision(12);
+  nvm << "NVM_V3_R9T\n1\n";
+  Matrix3x3 crot = transpose(linear_camera.camera_pose().rotation_matrix());
+  Vector3 ctrans = -(crot * linear_camera.camera_center());
+  nvm << crot(0,0) << " " << crot(0,1) << " " << crot(0,2) << " "
+      << crot(1,0) << " " << crot(1,1) << " " << crot(1,2) << " "
+      << crot(2,0) << " " << crot(2,1) << " " << crot(2,2) << " ";
+  nvm << ctrans[0] << " " << ctrans[1] << " " << ctrans[2] << " 0 0\n";
+  nvm.close();
 
   // Write Interest Points
   vw_out() << "\tFinal IP: " << ip.size() << "\n";

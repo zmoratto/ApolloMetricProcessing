@@ -37,7 +37,10 @@ if (StereoPipeline_FOUND AND QT_FOUND )
     ${QT_LIBRARIES}
     ${VISIONWORKBENCH_CAMERA_LIBRARY}
     ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
+    ${VISIONWORKBENCH_CARTOGRAPHY_LIBRARY}
+    ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
     )
 
   add_apollo_tool( isis_cnet_to_nvm isis_cnet_to_nvm.cc )
+  add_apollo_tool( obalog_brief_nvm obalog_brief_nvm.cc )
 endif()

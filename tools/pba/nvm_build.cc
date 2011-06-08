@@ -60,27 +60,67 @@ int main( int argc, char* argv[] ) {
       size_t num_cameras;
       std::ifstream file( input.c_str(), std::ios::in );
       if (!file.is_open() )
-	vw_throw( ArgumentErr() << "Unable to open: " << input << "!\n" );
+        vw_throw( ArgumentErr() << "Unable to open: " << input << "!\n" );
       file >> key >> num_cameras;
       VW_ASSERT( num_cameras == 1, ArgumentErr() << "Input NVM is supposed to only contain a single camera!\n" );
 
       std::string name;
       int buf;
       file >> name >> opt.focal_lengths[index]
-	   >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
-	   >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
-	   >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
-	   >> opt.translation[index][0] >> opt.translation[index][1] >> opt.translation[index][2]
-	   >> buf >> buf;
+           >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
+           >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
+           >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
+           >> opt.translation[index][0] >> opt.translation[index][1] >> opt.translation[index][2]
+           >> buf >> buf;
       index++;
     }
 
     // Construct Pinhole Camera Models
+    std::vector< boost::shared_ptr<CameraModel> > camera_models;
+    for ( size_i i = 0; i < opt.input_names.size(); i++ ) {
+      Vector3f camera_center =
+        -transpose(opt.rotations[i])*opt.translations[i];
+      camera_models.push_back( boost::shared_ptr<Camera_model>(
+         new PinholeModel( camera_center, opt.rotations[i],
+                           opt.focal_lengths[i], opt.focal_lengths[i], 0, 0,
+                           Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1),
+                           NullLensDistortion() ) ) );
+    }
 
     // Build Control Network
+    ba::ControlNetwork cnet( "Rawr" );
+    build_control_network( cnet, camera_models,
+                           opt.input_names, opt.min_matches );
 
     // Rewrite as NVM
-
+    std::ofstream nvm( fs::change_extension( cnet_file, ".nvm").string().c_str(),
+                       std::ofstream::out );
+    nvm << std::setprecision(12);
+    nvm << "NVM_V3_R9T\n";
+    nvm << opt.input_names.size() << "\n";
+    for ( size_t i = 0; i < opt.input_names.size(); i++ ) {
+      nvm << opt.input_names[i] << " " << opt.focal_lengths[i] << " ";
+      nvm << opt.rotations[i](0,0) << " " << opt.rotations[i](0,1) << " ";
+      nvm << opt.rotations[i](0,2) << " " << opt.rotations[i](1,0) << " ";
+      nvm << opt.rotations[i](1,1) << " " << opt.rotations[i](1,2) << " ";
+      nvm << opt.rotations[i](2,0) << " " << opt.rotations[i](2,1) << " ";
+      nvm << opt.rotations[i](2,2) << " ";
+      nvm << opt.translations[i][0] << " " << opt.translations[i][1] << " "
+          << opt.translations[i][2] << " 0 0\n"
+    }
+    nvm << cnet.size() << "\n";
+    BOOST_FOREACH( ba::ControlPoint const& cp, cnet ) {
+      if ( cp.type() == ba::ControlPoint::GroundControlPoint )
+        continue;
+      nvm << cp.position()[0] << " " << cp.position()[1] << " "
+          << cp.position()[2] << " 0 0 0 " << cp.size();
+      BOOST_FOREACH( ba::ControlMeasure const& cm, cp ) {
+        nvm << " " << cm.image_id() << " 0 "
+            << cm.position()[0] << " " << cm.position()[1];
+      }
+      nvm << "\n";
+    }
+    nvm.close();
   } catch( Exception const& e) {
     std::cerr << "\n\nVW Error: " << e.what() << std::endl;
     return 1;

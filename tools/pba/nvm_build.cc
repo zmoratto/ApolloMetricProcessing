@@ -7,8 +7,12 @@ namespace fs = boost::filesystem;
 // Vision Workbench
 #include <vw/Math.h>
 #include <vw/InterestPoint/InterestData.h>
+#include <vw/Camera/PinholeModel.h>
 #include <vw/BundleAdjustment/ControlNetworkLoader.h>
 using namespace vw;
+
+// Stereo Pipeline
+#include <asp/Core/Common.h>
 
 struct Options : public asp::BaseOptions {
   std::vector<std::string> input_names;
@@ -53,7 +57,7 @@ int main( int argc, char* argv[] ) {
     // Reading in NVM
     opt.rotations.resize( opt.input_names.size() );
     opt.translations.resize( opt.input_names.size() );
-    opt.focal_length.resize( opt.input_names.size() );
+    opt.focal_lengths.resize( opt.input_names.size() );
     size_t index = 0;
     BOOST_FOREACH( std::string const& input, opt.input_names ) {
       std::string key;
@@ -70,21 +74,21 @@ int main( int argc, char* argv[] ) {
            >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
            >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
            >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
-           >> opt.translation[index][0] >> opt.translation[index][1] >> opt.translation[index][2]
+           >> opt.translations[index][0] >> opt.translations[index][1] >> opt.translations[index][2]
            >> buf >> buf;
       index++;
     }
 
     // Construct Pinhole Camera Models
-    std::vector< boost::shared_ptr<CameraModel> > camera_models;
-    for ( size_i i = 0; i < opt.input_names.size(); i++ ) {
+    std::vector< boost::shared_ptr<camera::CameraModel> > camera_models;
+    for ( size_t i = 0; i < opt.input_names.size(); i++ ) {
       Vector3f camera_center =
         -transpose(opt.rotations[i])*opt.translations[i];
-      camera_models.push_back( boost::shared_ptr<Camera_model>(
-         new PinholeModel( camera_center, opt.rotations[i],
-                           opt.focal_lengths[i], opt.focal_lengths[i], 0, 0,
-                           Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1),
-                           NullLensDistortion() ) ) );
+      camera_models.push_back( boost::shared_ptr<camera::CameraModel>(
+	new camera::PinholeModel( camera_center, opt.rotations[i],
+				  opt.focal_lengths[i], opt.focal_lengths[i], 0, 0,
+				  Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1),
+				  camera::NullLensDistortion() ) ) );
     }
 
     // Build Control Network
@@ -93,7 +97,7 @@ int main( int argc, char* argv[] ) {
                            opt.input_names, opt.min_matches );
 
     // Rewrite as NVM
-    std::ofstream nvm( fs::change_extension( cnet_file, ".nvm").string().c_str(),
+    std::ofstream nvm( fs::change_extension( opt.nvm_output, ".nvm").string().c_str(),
                        std::ofstream::out );
     nvm << std::setprecision(12);
     nvm << "NVM_V3_R9T\n";
@@ -106,7 +110,7 @@ int main( int argc, char* argv[] ) {
       nvm << opt.rotations[i](2,0) << " " << opt.rotations[i](2,1) << " ";
       nvm << opt.rotations[i](2,2) << " ";
       nvm << opt.translations[i][0] << " " << opt.translations[i][1] << " "
-          << opt.translations[i][2] << " 0 0\n"
+          << opt.translations[i][2] << " 0 0\n";
     }
     nvm << cnet.size() << "\n";
     BOOST_FOREACH( ba::ControlPoint const& cp, cnet ) {

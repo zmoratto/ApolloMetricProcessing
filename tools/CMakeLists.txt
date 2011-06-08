@@ -33,15 +33,6 @@ if (ENABLE_RPATHS)
     )
 endif(ENABLE_RPATHS)
 
-# Building Dep
-if(APPLE)
-  execute_process( COMMAND make macosx-g++
-    WORKING_DIRECTORY ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2 )
-else(APPLE)
-  execute_process( COMMAND make linux-g++
-    WORKING_DIRECTORY ${ApolloMetricProcessing_SOURCE_DIR}/thirdparty/ann_1.1.2 )
-endif(APPLE)
-
 # Defining packages
 include(AddApollo)
 find_package(Boost REQUIRED

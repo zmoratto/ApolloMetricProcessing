@@ -8,7 +8,7 @@
 #include <vw/Core/Debugging.h>
 
 #include <asp/IsisIO/IsisAdjustCameraModel.h>
-#include <asp/ControlNetTK/equalization.h>
+#include <asp/ControlNetTK/Equalization.h>
 
 #include <boost/foreach.hpp>
 #include <boost/filesystem/path.hpp>

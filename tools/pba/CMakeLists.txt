@@ -2,6 +2,7 @@
 include_directories(${ApolloMetricProcessing_SOURCE_DIR}/src)
 include_directories(${VISIONWORKBENCH_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${FLANN_INCLUDE_DIRS})
 
 set(VISIONWORKBENCH_BASE_LIBRARIES
   ${Boost_LIBRARIES}

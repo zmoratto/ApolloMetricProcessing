@@ -7,7 +7,7 @@
 #include <vw/Math/Geometry.h>
 
 #include <asp/IsisIO/IsisAdjustCameraModel.h>
-#include <asp/ControlNetTK/equalization.h>
+#include <asp/ControlNetTK/Equalization.h>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>

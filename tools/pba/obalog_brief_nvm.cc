@@ -271,6 +271,7 @@ int main( int argc, char* argv[] ) {
   nvm << "NVM_V3_R9T\n1\n";
   Matrix3x3 crot = transpose(linear_camera.camera_pose().rotation_matrix());
   Vector3 ctrans = -(crot * linear_camera.camera_center());
+  nvm << cam_file << " " << linear_camera.focal_length()[0] << " ";
   nvm << crot(0,0) << " " << crot(0,1) << " " << crot(0,2) << " "
       << crot(1,0) << " " << crot(1,1) << " " << crot(1,2) << " "
       << crot(2,0) << " " << crot(2,1) << " " << crot(2,2) << " ";

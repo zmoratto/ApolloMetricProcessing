@@ -22,8 +22,12 @@ set(APOLLO_USED_LIBS
   ${VISIONWORKBENCH_CAMERA_LIBRARY}
   ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
   )
-
 add_apollo_tool( nvm_to_bundlevis nvm_to_bundlevis.cc )
+
+set(APOLLO_USED_LIBS
+  ${VISIONWORKBENCH_BASE_LIBRARIES}
+  )
+add_apollo_tool( nvm_refine_tri nvm_refine_tri.cc )
 
 if (StereoPipeline_FOUND AND QT_FOUND )
   include_directories(${StereoPipeline_INCLUDE_DIRS})

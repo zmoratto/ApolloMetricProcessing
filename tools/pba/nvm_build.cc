@@ -47,13 +47,15 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
                              positional, positional_desc, usage.str() );
 
   if ( opt.input_names.empty() )
-    vw_throw( ArgumentErr() << "Missing input cube files!\n"
+    vw_throw( ArgumentErr() << "Missing input nvm files!\n"
               << usage.str() << general_options );
 }
 
 int main( int argc, char* argv[] ) {
   Options opt;
   try {
+    handle_arguments( argc, argv, opt );
+
     // Reading in NVM
     opt.rotations.resize( opt.input_names.size() );
     opt.translations.resize( opt.input_names.size() );
@@ -71,9 +73,9 @@ int main( int argc, char* argv[] ) {
       std::string name;
       int buf;
       file >> name >> opt.focal_lengths[index]
-           >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
-           >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
-           >> opt.rotations[index](0,0) >> opt.rotations[index](0,0) >> opt.rotations[index](0,0)
+           >> opt.rotations[index](0,0) >> opt.rotations[index](0,1) >> opt.rotations[index](0,2)
+           >> opt.rotations[index](1,0) >> opt.rotations[index](1,1) >> opt.rotations[index](1,2)
+           >> opt.rotations[index](2,0) >> opt.rotations[index](2,1) >> opt.rotations[index](2,2)
            >> opt.translations[index][0] >> opt.translations[index][1] >> opt.translations[index][2]
            >> buf >> buf;
       index++;
@@ -81,14 +83,21 @@ int main( int argc, char* argv[] ) {
 
     // Construct Pinhole Camera Models
     std::vector< boost::shared_ptr<camera::CameraModel> > camera_models;
-    for ( size_t i = 0; i < opt.input_names.size(); i++ ) {
-      Vector3f camera_center =
-        -transpose(opt.rotations[i])*opt.translations[i];
-      camera_models.push_back( boost::shared_ptr<camera::CameraModel>(
-	new camera::PinholeModel( camera_center, opt.rotations[i],
-				  opt.focal_lengths[i], opt.focal_lengths[i], 0, 0,
-				  Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1),
-				  camera::NullLensDistortion() ) ) );
+    {
+      TerminalProgressCallback tpc("","Building Models:");
+      tpc.report_progress(0);
+      float inc_amt = 1.0/float(opt.input_names.size());
+      for ( size_t i = 0; i < opt.input_names.size(); i++ ) {
+	tpc.report_incremental_progress(inc_amt);
+	Vector3f camera_center =
+	  -transpose(opt.rotations[i])*opt.translations[i];
+	camera_models.push_back( boost::shared_ptr<camera::CameraModel>(
+	  new camera::PinholeModel( camera_center, transpose(opt.rotations[i]),
+				    opt.focal_lengths[i], opt.focal_lengths[i], 0, 0,
+				    Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1),
+				    camera::NullLensDistortion() ) ) );
+      }
+      tpc.report_finished();
     }
 
     // Build Control Network

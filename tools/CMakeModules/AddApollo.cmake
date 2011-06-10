@@ -1,11 +1,15 @@
 macro(add_apollo_executable name)
   add_executable(${name} ${ARGN})
   foreach(lib ${APOLLO_USED_LIBS})
-    target_link_libraries( ${name} ${lib} )
+    if( NOT ${lib} STREQUAL "optimized" AND
+        NOT ${lib} STREQUAL "debug" )
+    	target_link_libraries( ${name} ${lib} )
+    endif()
   endforeach(lib)
 endmacro(add_apollo_executable name)
 
 macro(add_apollo_tool name)
+  message( "ARGN: " ${ARGN} )
   add_apollo_executable(${name} ${ARGN})
   message( "Added: " ${name} )
   install(TARGETS ${name} RUNTIME DESTINATION bin)

@@ -72,7 +72,8 @@ namespace vw {
     nvm << std::setprecision(12);
     nvm << "NVM_V3_R9T\n" << num_cameras << "\n";
     while ( begin != end ) {
-      write_nvm_camera( nvm, *begin );
+      boost::shared_ptr<camera::PinholeModel> pin(*begin);
+      write_nvm_camera( nvm, pin.get() );
       begin++;
     }
     write_nvm_controlnetwork( nvm, cnet );
@@ -137,13 +138,15 @@ namespace vw {
                             ba::ControlPoint& cp) {
     float fbuf;
     size_t num_measurements;
-    stream >> cp.position()[0] >> cp.position()[1]
-           >> cp.position()[2] >> fbuf >> fbuf >> fbuf >> num_measurements;
+    Vector3 position;
+    stream >> position[0] >> position[1]
+           >> position[2] >> fbuf >> fbuf >> fbuf >> num_measurements;
+    cp.set_position(position);
     cp.resize( num_measurements );
     for ( size_t i = 0; i < num_measurements; i++ ) {
-      size_t cam_id; Vector3f position;
-      stream >> cam_id >> position[0] >> position[1] >> position[2];
-      cp[i] = ba::ControlMeasure( position[1], position[2], 1, 1, cam_id );
+      size_t cam_id; Vector3f measure;
+      stream >> cam_id >> measure[0] >> measure[1] >> measure[2];
+      cp[i] = ba::ControlMeasure( measure[1], measure[2], 1, 1, cam_id );
     }
   }
 

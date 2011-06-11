@@ -26,6 +26,8 @@ add_apollo_tool( nvm_to_bundlevis nvm_to_bundlevis.cc )
 
 set(APOLLO_USED_LIBS
   ${VISIONWORKBENCH_BASE_LIBRARIES}
+  ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
+  ${VISIONWORKBENCH_CAMERA_LIBRARY}
   )
 add_apollo_tool( nvm_refine_tri nvm_refine_tri.cc )
 

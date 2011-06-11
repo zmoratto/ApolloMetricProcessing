@@ -8,6 +8,7 @@
 #include <boost/filesystem/convenience.hpp>
 
 #include "../src/camera_fitting.h"
+#include "../pba/nvmio.h"
 
 using namespace vw;
 namespace po = boost::program_options;
@@ -54,6 +55,7 @@ int main( int argc, char* argv[] ) {
   }
 
   std::vector<CameraInfo> camera_information;
+  std::vector<camera::PinholeModel*> camera_ptrs;
 
   // Opening Camera List
   std::cout << "Loading cameras:\n";
@@ -105,6 +107,11 @@ int main( int argc, char* argv[] ) {
   }
   camlist.close();
 
+  // Pull out the pointers
+  camera_ptrs.resize( camera_information.size() );
+  for( size_t i = 0; i < camera_information.size(); i++ )
+    camera_ptrs[i] = &camera_information[i].model;
+
   // Opening Control Network
   ba::ControlNetwork cnet("nvm");
   cnet.read_binary( cnet_file );
@@ -121,33 +128,7 @@ int main( int argc, char* argv[] ) {
   }
 
   // Writing NVM
-  std::ofstream nvm( fs::change_extension( cnet_file, ".nvm").string().c_str(),
-                     std::ofstream::out );
-  nvm << std::setprecision(12);
-  // Writing camera models
-  nvm << "NVM_V3_R9T\n";
-  nvm << camera_information.size() << "\n";
-  BOOST_FOREACH( CameraInfo const& camera, camera_information ) {
-    nvm << camera.filename << " " << camera.model.focal_length()[0] << " ";
-    Matrix3x3 rot = transpose(camera.model.camera_pose().rotation_matrix());
-    nvm << rot(0,0) << " " << rot(0,1) << " " << rot(0,2) << " "
-        << rot(1,0) << " " << rot(1,1) << " " << rot(1,2) << " "
-        << rot(2,0) << " " << rot(2,1) << " " << rot(2,2) << " ";
-    Vector3 trans = -(rot * camera.model.camera_center());
-    nvm << trans[0] << " " << trans[1] << " " << trans[2] << " 0 0\n";
-  }
-  // Writing point measurements
-  nvm << cnet.size() - cnet.num_ground_control_points() << "\n";
-  BOOST_FOREACH( ba::ControlPoint const& cp, cnet ) {
-    if ( cp.type() == ba::ControlPoint::GroundControlPoint )
-      continue;
-    nvm << cp.position()[0] << " " << cp.position()[1] << " "
-        << cp.position()[2] << " 0 0 0 " << cp.size();
-    BOOST_FOREACH( ba::ControlMeasure const& cm, cp ) {
-      nvm << " " << cm.image_id() << " 0 "
-          << cm.position()[0] << " " << cm.position()[1];
-    }
-    nvm << "\n";
-  }
-  nvm.close();
+  write_nvm_iterator_ptr( cnet_file,
+                          camera_ptrs.begin(), camera_ptrs.end(),
+                          cnet );
 }

@@ -9,7 +9,6 @@ macro(add_apollo_executable name)
 endmacro(add_apollo_executable name)
 
 macro(add_apollo_tool name)
-  message( "ARGN: " ${ARGN} )
   add_apollo_executable(${name} ${ARGN})
   message( "Added: " ${name} )
   install(TARGETS ${name} RUNTIME DESTINATION bin)

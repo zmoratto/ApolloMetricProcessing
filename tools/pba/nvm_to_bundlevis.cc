@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
   std::cout << "Key: " << key << "\n";
   std::cout << "Num Cams: " << num_cameras << "\n";
 
-  // Writing out camera
+  // Reading out camera
   for ( size_t j = 0; j < num_cameras; j++ ) {
     std::string name;
     float focal;
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
   file >> num_points;
   std::cout << "Num Pts: " << num_points << "\n";
 
-  // Writing out points
+  // Reading out points
   for ( size_t i = 0; i < num_points; i++ ) {
     Vector3 point;
     file >> point[0] >> point[1] >> point[2];

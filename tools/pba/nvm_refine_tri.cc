@@ -2,10 +2,22 @@
 #include <vw/Math.h>
 using namespace vw;
 
+#include <asp/Core/Common.h>
+
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
+
+#include "../pba/nvmio.h"
+
+struct Options : public asp::BaseOptions {
+  std::string nvm_input;
+};
+
+void handle_arguments( int argc, char *argv[], Options& opt ) {
+  
+}
 
 int main( int argc, char* argv[] ) {
   Options opt;

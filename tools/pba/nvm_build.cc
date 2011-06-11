@@ -13,6 +13,7 @@ using namespace vw;
 
 // Stereo Pipeline
 #include <asp/Core/Common.h>
+#include "../pba/nvmio.h"
 
 struct Options : public asp::BaseOptions {
   std::vector<std::string> input_names;
@@ -88,14 +89,14 @@ int main( int argc, char* argv[] ) {
       tpc.report_progress(0);
       float inc_amt = 1.0/float(opt.input_names.size());
       for ( size_t i = 0; i < opt.input_names.size(); i++ ) {
-	tpc.report_incremental_progress(inc_amt);
-	Vector3f camera_center =
-	  -transpose(opt.rotations[i])*opt.translations[i];
-	camera_models.push_back( boost::shared_ptr<camera::CameraModel>(
-	  new camera::PinholeModel( camera_center, transpose(opt.rotations[i]),
-				    opt.focal_lengths[i], opt.focal_lengths[i], 0, 0,
-				    Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1),
-				    camera::NullLensDistortion() ) ) );
+        tpc.report_incremental_progress(inc_amt);
+        Vector3f camera_center =
+          -transpose(opt.rotations[i])*opt.translations[i];
+        camera_models.push_back( boost::shared_ptr<camera::CameraModel>(
+          new camera::PinholeModel( camera_center, transpose(opt.rotations[i]),
+                                    opt.focal_lengths[i], opt.focal_lengths[i], 0, 0,
+                                    Vector3(1,0,0), Vector3(0,1,0), Vector3(0,0,1),
+                                    camera::NullLensDistortion() ) ) );
       }
       tpc.report_finished();
     }
@@ -106,34 +107,11 @@ int main( int argc, char* argv[] ) {
                            opt.input_names, opt.min_matches );
 
     // Rewrite as NVM
-    std::ofstream nvm( fs::change_extension( opt.nvm_output, ".nvm").string().c_str(),
-                       std::ofstream::out );
-    nvm << std::setprecision(12);
-    nvm << "NVM_V3_R9T\n";
-    nvm << opt.input_names.size() << "\n";
-    for ( size_t i = 0; i < opt.input_names.size(); i++ ) {
-      nvm << opt.input_names[i] << " " << opt.focal_lengths[i] << " ";
-      nvm << opt.rotations[i](0,0) << " " << opt.rotations[i](0,1) << " ";
-      nvm << opt.rotations[i](0,2) << " " << opt.rotations[i](1,0) << " ";
-      nvm << opt.rotations[i](1,1) << " " << opt.rotations[i](1,2) << " ";
-      nvm << opt.rotations[i](2,0) << " " << opt.rotations[i](2,1) << " ";
-      nvm << opt.rotations[i](2,2) << " ";
-      nvm << opt.translations[i][0] << " " << opt.translations[i][1] << " "
-          << opt.translations[i][2] << " 0 0\n";
-    }
-    nvm << cnet.size() << "\n";
-    BOOST_FOREACH( ba::ControlPoint const& cp, cnet ) {
-      if ( cp.type() == ba::ControlPoint::GroundControlPoint )
-        continue;
-      nvm << cp.position()[0] << " " << cp.position()[1] << " "
-          << cp.position()[2] << " 0 0 0 " << cp.size();
-      BOOST_FOREACH( ba::ControlMeasure const& cm, cp ) {
-        nvm << " " << cm.image_id() << " 0 "
-            << cm.position()[0] << " " << cm.position()[1];
-      }
-      nvm << "\n";
-    }
-    nvm.close();
+    write_nvm_r9t( opt.nvm_output,
+                   opt.focal_lengths.begin(), opt.focal_lengths.end(),
+                   opt.rotations.begin(), opt.rotations.end(),
+                   opt.translations.begin(), opt.translations.end(),
+                   cnet );
   } catch( Exception const& e) {
     std::cerr << "\n\nVW Error: " << e.what() << std::endl;
     return 1;

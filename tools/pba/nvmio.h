@@ -4,6 +4,7 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
+#include <boost/filesystem/convenience.hpp>
 
 namespace vw {
 

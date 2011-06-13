@@ -2,8 +2,6 @@
 #include <vw/Math.h>
 using namespace vw;
 
-#include <asp/Core/Common.h>
-
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 namespace po = boost::program_options;
@@ -34,14 +32,15 @@ struct PointSolveModel : public math::LeastSquaresModelBase<PointSolveModel> {
   }
 };
 
-struct Options : public asp::BaseOptions {
+struct Options {
   std::string nvm_input;
   std::vector<boost::shared_ptr<camera::PinholeModel> > cameras;
 };
 
 void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("");
-  general_options.add( asp::BaseOptionsDescription(opt) );
+  general_options.add_options()
+    ("help,h", "Display this help message");
 
   po::options_description positional("");
   positional.add_options()
@@ -53,13 +52,22 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   std::ostringstream usage;
   usage << "Usage: " << argv[0] << " [options] <singleton nvm> ...\n";
 
-  po::variables_map vm =
-    asp::check_command_line( argc, argv, opt, general_options,
-                             positional, positional_desc, usage.str() );
+  po::variables_map vm;
+  try {
+    po::options_description all_options;
+    all_options.add(general_options).add(positional);
+    po::store( po::command_line_parser( argc, argv ).options(all_options).positional(positional_desc).run(), vm );
+    po::notify( vm );
+  } catch (po::error const& e) {
+    vw_throw( ArgumentErr() << "Error parsing input:\n"
+              << e.what() << "\n" << usage.str() << "\n" << general_options );
+  }
 
   if ( opt.nvm_input.empty() )
     vw_throw( ArgumentErr() << "Missing input nvm files!\n"
               << usage.str() << general_options );
+  if ( vm.count("help") )
+    vw_throw( ArgumentErr() << usage.str() << "\n" << general_options );
 }
 
 int main( int argc, char* argv[] ) {

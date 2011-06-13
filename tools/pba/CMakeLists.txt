@@ -30,6 +30,7 @@ set(APOLLO_USED_LIBS
   ${VISIONWORKBENCH_CAMERA_LIBRARY}
   )
 add_apollo_tool( nvm_refine_tri nvm_refine_tri.cc )
+add_apollo_tool( nvm_error nvm_error.cc )
 
 if (StereoPipeline_FOUND AND QT_FOUND )
   include_directories(${StereoPipeline_INCLUDE_DIRS})

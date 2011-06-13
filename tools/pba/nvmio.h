@@ -5,6 +5,7 @@
 #include <vw/Camera/PinholeModel.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/foreach.hpp>
 
 namespace vw {
 

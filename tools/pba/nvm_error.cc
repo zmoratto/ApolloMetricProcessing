@@ -10,6 +10,7 @@ namespace fs = boost::filesystem;
 #include "../pba/nvmio.h"
 
 struct Options {
+  double error_threshold;
   std::string nvm_input;
   std::vector<boost::shared_ptr<camera::PinholeModel> > cameras;
 };
@@ -17,6 +18,8 @@ struct Options {
 void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("");
   general_options.add_options()
+    ("error-threshold,e", po::value(&opt.error_threshold)->default_value(100),
+     "Error threshold in pixels.")
     ("help,h", "Display this help message");
 
   po::options_description positional("");
@@ -100,7 +103,7 @@ int main( int argc, char* argv[] ) {
       while ( cmi < cnet[cpi].size() ) {
         double error =
           norm_2(cnet[cpi][cmi].position() - opt.cameras[cnet[cpi][cmi].image_id()]->point_to_pixel(cnet[cpi].position()));
-        if ( error > 100 ) {
+        if ( error > opt.error_threshold ) {
           cnet[cpi].delete_measure(cmi);
         } else {
           error_cdf(error);

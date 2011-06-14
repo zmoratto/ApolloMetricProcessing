@@ -77,7 +77,7 @@ int main( int argc, char* argv[] ) {
     Vector3 pos_correction =
       fix_model->camera_center(Vector2()) - org_model.camera_center(Vector2());
     Quat pose_correction =
-      inverse( org_model.camera_pose(Vector2()) ) * fix_model->camera_pose(Vector2());
+      org_model.camera_pose(Vector2()) * inverse(fix_model->camera_pose(Vector2()));
     Vector3 posev_correction = pose_correction.axis_angle();
 
     // Writing the adjust file

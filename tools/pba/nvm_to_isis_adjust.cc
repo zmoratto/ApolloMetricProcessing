@@ -97,8 +97,11 @@ int main( int argc, char* argv[] ) {
 
     if ( vm.count("sanity-check") ) {
       camera::IsisAdjustCameraModel san_model( camlist_buffer, posF, poseF );
+      std::cout << std::setprecision(8);
       std::cout << fix_model->camera_center(Vector2()) << " " << san_model.camera_center(Vector2()) << "\n";
       std::cout << fix_model->camera_pose(Vector2()) <<   " " << san_model.camera_pose(Vector2()) << "\n";
     }
+
+    std::getline( camlist, camlist_buffer );
   }
 }

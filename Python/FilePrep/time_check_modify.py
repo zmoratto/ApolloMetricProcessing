@@ -46,7 +46,7 @@ def main():
             for line in cmd_return:
                 if line.find("Group = ") >= 0:
                     group = line.split()[2];
-                if line.find("StartTime") >= 0:
+                if line.find(" StartTime ") >= 0:
                     if ( group == "Code" ):
                         time_code = line.split()[2];
                     if ( group == "Instrument" ):

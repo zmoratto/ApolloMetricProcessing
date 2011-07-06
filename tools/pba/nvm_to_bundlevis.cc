@@ -43,6 +43,10 @@ int main(int argc, char** argv) {
   if(vm.count("help") ) {
     vw_out() << usage.str();
     return 1;
+  } else if ( nvm_file.empty() ) {
+    vw_out() << "Missing input nvm file!\n";
+    vw_out() << usage.str() << "\n";
+    return 1;
   }
 
   // Output file

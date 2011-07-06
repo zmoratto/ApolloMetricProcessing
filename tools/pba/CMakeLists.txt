@@ -58,6 +58,7 @@ if (StereoPipeline_FOUND AND QT_FOUND )
     ${VISIONWORKBENCH_CAMERA_LIBRARY}
     ${VISIONWORKBENCH_BUNDLEADJUSTMENT_LIBRARY}
     ${VISIONWORKBENCH_INTERESTPOINT_LIBRARY}
+    ${StereoPipeline_CORE_LIBRARY}
     )
   add_apollo_tool( nvm_build nvm_build.cc )
 endif()

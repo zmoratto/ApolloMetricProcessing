@@ -99,6 +99,15 @@ int main( int argc, char* argv[] ) {
     size_t cpi = 0;
     tpc.report_progress(0);
     while ( cpi < cnet.size() ) {
+      tpc.report_incremental_progress(inc_amt);
+
+      // Determine if the point is above Apollo
+      if ( norm_2(cnet[cpi].position()) > 1847e3 ) {
+	cnet.delete_control_point(cpi);
+	break;
+      }
+
+      // Check if the measurements are bad
       size_t cmi = 0;
       while ( cmi < cnet[cpi].size() ) {
         double error =
@@ -116,7 +125,6 @@ int main( int argc, char* argv[] ) {
         cnet.delete_control_point(cpi);
       else
         cpi++;
-      tpc.report_incremental_progress(inc_amt);
     }
     tpc.report_finished();
 

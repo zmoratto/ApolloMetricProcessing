@@ -102,6 +102,7 @@ int main( int argc, char* argv[] ) {
   general_options.add_options()
     ("cam-file", po::value(&cam_file), "A file listing the input cube files.")
     ("image-file", po::value(&image_file), "Input control network.")
+    ("no-linearize", "Don't linearize, create VWIPs that can be used by standard BA.")
     ("help,h", "Display this help message");
 
   po::positional_options_description p;
@@ -247,36 +248,38 @@ int main( int argc, char* argv[] ) {
     }
   }
 
-  // Linearize Camera Model
-  camera::PinholeModel linear_camera =
-    linearize_pinhole( camera.get(), image_size );
+  if (!vm.count("no-linearize")) {
+    // Linearize Camera Model
+    camera::PinholeModel linear_camera =
+      linearize_pinhole( camera.get(), image_size );
 
-  // Transform measurements to linearized camera models
-  BOOST_FOREACH( ip::InterestPoint& point, ip ) {
-    Vector2 distorted( point.x , point.y );
-    Vector2 undistort =
-      linear_camera.point_to_pixel(camera->camera_center( distorted ) +
-                                   camera->pixel_to_vector( distorted )) -
-      linear_camera.point_offset();
-    point.x = undistort[0];
-    point.y = undistort[1];
-    point.ix = undistort[0];
-    point.iy = undistort[1];
+    // Transform measurements to linearized camera models
+    BOOST_FOREACH( ip::InterestPoint& point, ip ) {
+      Vector2 distorted( point.x , point.y );
+      Vector2 undistort =
+        linear_camera.point_to_pixel(camera->camera_center( distorted ) +
+                                     camera->pixel_to_vector( distorted )) -
+        linear_camera.point_offset();
+      point.x = undistort[0];
+      point.y = undistort[1];
+      point.ix = undistort[0];
+      point.iy = undistort[1];
+    }
+
+    // Write NVM
+    std::ofstream nvm( fs::change_extension( image_file, ".nvm").string().c_str(),
+                       std::ofstream::out );
+    nvm << std::setprecision(12);
+    nvm << "NVM_V3_R9T\n1\n";
+    Matrix3x3 crot = transpose(linear_camera.camera_pose().rotation_matrix());
+    Vector3 ctrans = -(crot * linear_camera.camera_center());
+    nvm << cam_file << " " << linear_camera.focal_length()[0] << " ";
+    nvm << crot(0,0) << " " << crot(0,1) << " " << crot(0,2) << " "
+        << crot(1,0) << " " << crot(1,1) << " " << crot(1,2) << " "
+        << crot(2,0) << " " << crot(2,1) << " " << crot(2,2) << " ";
+    nvm << ctrans[0] << " " << ctrans[1] << " " << ctrans[2] << " 0 0\n";
+    nvm.close();
   }
-
-  // Write NVM
-  std::ofstream nvm( fs::change_extension( image_file, ".nvm").string().c_str(),
-                     std::ofstream::out );
-  nvm << std::setprecision(12);
-  nvm << "NVM_V3_R9T\n1\n";
-  Matrix3x3 crot = transpose(linear_camera.camera_pose().rotation_matrix());
-  Vector3 ctrans = -(crot * linear_camera.camera_center());
-  nvm << cam_file << " " << linear_camera.focal_length()[0] << " ";
-  nvm << crot(0,0) << " " << crot(0,1) << " " << crot(0,2) << " "
-      << crot(1,0) << " " << crot(1,1) << " " << crot(1,2) << " "
-      << crot(2,0) << " " << crot(2,1) << " " << crot(2,2) << " ";
-  nvm << ctrans[0] << " " << ctrans[1] << " " << ctrans[2] << " 0 0\n";
-  nvm.close();
 
   // Write Interest Points
   vw_out() << "\tFinal IP: " << ip.size() << "\n";

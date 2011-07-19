@@ -10,90 +10,10 @@
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
-#include <boost/polygon/polygon.hpp>
-namespace poly = boost::polygon;
-
 #include "../src/camera_fitting.h"
+#include "../src/ApolloShapes.h"
 
 using namespace vw;
-
-typedef poly::polygon_data<float> Polygon;
-typedef poly::polygon_traits<Polygon>::point_type Point;
-Point LEFT_FIDUCIAL[] = {
-  poly::construct<Point>(0,545),
-  poly::construct<Point>(17,573),
-  poly::construct<Point>(0,574)
-};
-Point TOP_FIDUCIAL[] = {
-  poly::construct<Point>(574,0),
-  poly::construct<Point>(573,17),
-  poly::construct<Point>(544,0)
-};
-Point RIGHT_FIDUCIAL[] = {
-  poly::construct<Point>(1144,599),
-  poly::construct<Point>(1126,570),
-  poly::construct<Point>(1144,570)
-};
-Point BOT_FIDUCIAL[] = {
-  poly::construct<Point>(545,1144),
-  poly::construct<Point>(573,1126),
-  poly::construct<Point>(573,1144)
-};
-Point LENS_CAP[] = {
-  poly::construct<Point>(1144,0),
-  poly::construct<Point>(1144,1144),
-  poly::construct<Point>(1082,1144),
-  poly::construct<Point>(899,968),
-  poly::construct<Point>(902,901),
-  poly::construct<Point>(932,831),
-  poly::construct<Point>(885,721),
-  poly::construct<Point>(873,625),
-  poly::construct<Point>(1048,122),
-  poly::construct<Point>(1055,0)
-};
-Point ANTENNA[] = {
-  poly::construct<Point>(1144,631),
-  poly::construct<Point>(779,601),
-  poly::construct<Point>(780,564),
-  poly::construct<Point>(1144,570)
-};
-
-struct ApolloShapes {
-  Polygon left_fiducial, top_fiducial, right_fiducial, bot_fiducial;
-  Polygon lens_cap, antenna;
-
-  ApolloShapes() {
-    poly::set_points(left_fiducial, LEFT_FIDUCIAL, LEFT_FIDUCIAL+3);
-    poly::set_points(top_fiducial,  TOP_FIDUCIAL,  TOP_FIDUCIAL+3);
-    poly::set_points(right_fiducial,RIGHT_FIDUCIAL,RIGHT_FIDUCIAL+3);
-    poly::set_points(bot_fiducial,  BOT_FIDUCIAL,  BOT_FIDUCIAL+3);
-    poly::set_points(lens_cap,      LENS_CAP,      LENS_CAP+10);
-    poly::set_points(antenna,       ANTENNA,       ANTENNA+4);
-  }
-
-  inline bool in_fiducial( Vector2f const& p ) const {
-    Point pc = poly::construct<Point>(p[0],p[1]);
-    return poly::contains(left_fiducial, pc) ||
-      poly::contains(top_fiducial, pc) ||
-      poly::contains(right_fiducial, pc) ||
-      poly::contains(bot_fiducial, pc);
-  }
-
-  inline bool in_lens_cap( Vector2f const& p ) const {
-    return poly::contains(lens_cap, poly::construct<Point>(p[0],p[1]));
-  }
-
-  inline bool in_antenna( Vector2f const& p ) const {
-    return poly::contains(antenna, poly::construct<Point>(p[0],p[1]));
-  }
-};
-
-int32 extract_camera_number( std::string filename ) {
-  size_t s_idx = filename.find("AS");
-  std::string mission_string = filename.substr(s_idx+2,2);
-  std::string image_string   = filename.substr(s_idx+7,4);
-  return boost::lexical_cast<int32>(mission_string)*10000 + boost::lexical_cast<int32>(image_string);
-}
 
 int main( int argc, char* argv[] ) {
 

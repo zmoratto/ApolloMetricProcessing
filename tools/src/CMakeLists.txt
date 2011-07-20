@@ -89,6 +89,7 @@ if (StereoPipeline_FOUND AND QT_FOUND )
 
   add_apollo_tool( extract_lola_wac_gcp extract_lola_wac_gcp.cc )
   add_apollo_tool( extract_lola_wac_gcp2 extract_lola_wac_gcp2.cc )
+  add_apollo_tool( extract_lola_wac_gcp3 extract_lola_wac_gcp3.cc )
 
 endif()
 

@@ -314,12 +314,11 @@ namespace vw {
     }
 
     std::pair<cartography::GeoReference, std::string>
-    find_tile( Vector3 llr ) {
-      if ( llr[0] < 0 )
-        llr[0] += 360;
-      std::cout << "Query: " << llr << "\n";
+    find_tile( Vector2 lonlat ) {
+      if ( lonlat[0] < 0 )
+        lonlat[0] += 360;
       for ( size_t i = 0; i < m_bboxes.size(); i++ ) {
-        if ( m_bboxes[i].contains( subvector(llr,0,2) ) ) {
+        if ( m_bboxes[i].contains( lonlat ) ) {
           std::pair<cartography::GeoReference, std::string> result;
           cartography::read_georeference( result.first,
                                           m_filenames[i] );
@@ -328,6 +327,11 @@ namespace vw {
         }
       }
       vw_throw( ArgumentErr() << "Unable to find match?" );
+    }
+
+    std::pair<cartography::GeoReference, std::string>
+    find_tile( Vector3 llr ) {
+      return find_tile( Vector2(subvector( llr, 0, 2 )) );
     }
   };
 

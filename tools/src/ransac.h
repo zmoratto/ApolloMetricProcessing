@@ -12,16 +12,16 @@ namespace vw {
 
     /// RANSAC Driver class
     template <class FittingFuncT, class ErrorFuncT>
-      class RandomSampleConsensusMod {
+    class RandomSampleConsensusMod {
       const FittingFuncT& m_fitting_func;
       const ErrorFuncT& m_error_func;
       double m_inlier_threshold;
 
       // Returns the number of inliers for a given threshold.
       template <class ContainerT1, class ContainerT2>
-        unsigned num_inliers(typename FittingFuncT::result_type const& H,
-                             std::vector<ContainerT1> const& p1,
-                             std::vector<ContainerT2> const& p2) const {
+      unsigned num_inliers(typename FittingFuncT::result_type const& H,
+                           std::vector<ContainerT1> const& p1,
+                           std::vector<ContainerT2> const& p2) const {
         unsigned result = 0;
         for (unsigned i=0; i<p1.size(); i++) {
           if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold)
@@ -52,14 +52,14 @@ namespace vw {
 
       // Returns the list of inlier indices.
       template <class ContainerT1, class ContainerT2>
-        void inliers(typename FittingFuncT::result_type const& H,
-                     std::vector<ContainerT1> const& p1, std::vector<ContainerT2> const& p2,
-                     std::vector<ContainerT1> &inliers1, std::vector<ContainerT2> &inliers2) const {
+      void inliers(typename FittingFuncT::result_type const& H,
+                   std::vector<ContainerT1> const& p1, std::vector<ContainerT2> const& p2,
+                   std::vector<ContainerT1> &inliers1, std::vector<ContainerT2> &inliers2) const {
 
         inliers1.clear();
         inliers2.clear();
 
-        for (unsigned int i=0; i<p1.size(); i++) {
+        for (size_t i = 0; i < p1.size(); i++) {
           if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) {
             inliers1.push_back(p1[i]);
             inliers2.push_back(p2[i]);
@@ -69,22 +69,22 @@ namespace vw {
 
       // Returns the list of inlier indices.
       template <class ContainerT1, class ContainerT2>
-        std::vector<int> inlier_indices(typename FittingFuncT::result_type const& H,
-                                        std::vector<ContainerT1> const& p1,std::vector<ContainerT2> const& p2) const {
-        std::vector<int> result;
-        for (unsigned int i=0; i<p1.size(); i++)
+      std::vector<size_t> inlier_indices(typename FittingFuncT::result_type const& H,
+                                      std::vector<ContainerT1> const& p1,std::vector<ContainerT2> const& p2) const {
+        std::vector<size_t> result;
+        for (size_t i = 0; i < p1.size(); i++)
           if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold)
             result.push_back(i);
         return result;
       }
 
-    RandomSampleConsensusMod(FittingFuncT const& fitting_func, ErrorFuncT const& error_func, double inlier_threshold)
-      : m_fitting_func(fitting_func), m_error_func(error_func), m_inlier_threshold(inlier_threshold) {}
+      RandomSampleConsensusMod(FittingFuncT const& fitting_func, ErrorFuncT const& error_func, double inlier_threshold)
+        : m_fitting_func(fitting_func), m_error_func(error_func), m_inlier_threshold(inlier_threshold) {}
 
       template <class ContainerT1, class ContainerT2>
-        typename FittingFuncT::result_type operator()(std::vector<ContainerT1> const& p1,
-                                                      std::vector<ContainerT2> const& p2,
-                                                      int ransac_iterations = 0) const {
+      typename FittingFuncT::result_type operator()(std::vector<ContainerT1> const& p1,
+                                                    std::vector<ContainerT2> const& p2,
+                                                    int ransac_iterations = 0) const {
         // check consistency
         VW_ASSERT( p1.size() == p2.size(),
                    RANSACErr() << "RANSAC Error.  data vectors are not the same size." );

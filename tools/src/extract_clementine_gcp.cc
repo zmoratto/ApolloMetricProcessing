@@ -193,21 +193,20 @@ int main( int argc, char* argv[] ) {
 
             std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
             std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
-            Matrix<double> align_matrix;
 
-            std::vector<int> indices;
             math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 10);
-            align_matrix = ransac(ransac_ip2,ransac_ip1);
+            Matrix<double> align_matrix = ransac(ransac_ip2,ransac_ip1);
             if ( norm_2(subvector(select_col(align_matrix,2),0,2)) > 200 ||
                  align_matrix(0,0) < 0 || align_matrix(1,1) < 0 ) {
               std::cout << "RANSAC FITTED TO OUTLIER\n";
               continue;
             }
             std::cout << "Align Matrix: " << align_matrix << "\n";
-            indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
+            std::vector<size_t> indices =
+              ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
 
             std::vector<InterestPoint> final_ip1, final_ip2;
-            for (unsigned idx=0; idx < indices.size(); ++idx) {
+            for (size_t idx=0; idx < indices.size(); ++idx) {
               final_ip1.push_back(matched_ip1[indices[idx]]);
               final_ip2.push_back(matched_ip2[indices[idx]]);
             }

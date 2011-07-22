@@ -21,30 +21,6 @@ namespace po = boost::program_options;
 #include <boost/filesystem/path.hpp>
 namespace fs = boost::filesystem;
 
-// Duplicate matches for any given interest point probably indicate a
-// poor match, so we cull those out here.
-void remove_duplicates(std::vector<InterestPoint> &ip1, std::vector<InterestPoint> &ip2) {
-  std::vector<InterestPoint> new_ip1, new_ip2;
-
-  for (size_t i = 0; i < ip1.size(); ++i) {
-    bool bad_entry = false;
-    for (size_t j = 0; j < ip1.size(); ++j) {
-      if (i != j &&
-          ((ip1[i].x == ip1[j].x && ip1[i].y == ip1[j].y) ||
-           (ip2[i].x == ip2[j].x && ip2[i].y == ip2[j].y)) ) {
-        bad_entry = true;
-      }
-    }
-    if (!bad_entry) {
-      new_ip1.push_back(ip1[i]);
-      new_ip2.push_back(ip2[i]);
-    }
-  }
-
-  ip1 = new_ip1;
-  ip2 = new_ip2;
-}
-
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   double matcher_threshold;
@@ -115,7 +91,7 @@ int main(int argc, char** argv) {
 
       std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
       std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
-      std::vector<int> indices;
+      std::vector<size_t> indices;
       try {
         if ( vm.count("fundamental-matrix") ) {
           typedef camera::FundamentalMatrix8PFittingFunctor fit_func;
@@ -146,7 +122,7 @@ int main(int argc, char** argv) {
       vw_out() << "Found " << indices.size() << " final matches.\n";
 
       std::vector<InterestPoint> final_ip1, final_ip2;
-      for (unsigned idx=0; idx < indices.size(); ++idx) {
+      for (size_t idx=0; idx < indices.size(); ++idx) {
         final_ip1.push_back(matched_ip1[indices[idx]]);
         final_ip2.push_back(matched_ip2[indices[idx]]);
       }

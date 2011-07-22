@@ -233,14 +233,14 @@ int main( int argc, char* argv[] ) {
     std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
     matcher(ip_wac_v, ip_amc_v, matched_ip1, matched_ip2, false,
             TerminalProgressCallback( "tools.ipalign", "Matching:"));
+    remove_duplicates( matched_ip1, matched_ip2 );
 
     std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
     std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
-    Matrix<double> align_matrix;
 
-    std::vector<int> indices;
+    std::vector<size_t> indices;
     math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 20);
-    align_matrix = ransac(ransac_ip2,ransac_ip1);
+    Matrix<double> align_matrix = ransac(ransac_ip2,ransac_ip1);
     if ( norm_2(subvector(select_col(align_matrix,2),0,2)) > 200 ||
          align_matrix(0,0) < 0 || align_matrix(1,1) < 0 ) {
       std::cout << "RANSAC FITTED TO OUTLIER\n";
@@ -251,7 +251,7 @@ int main( int argc, char* argv[] ) {
     indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
 
     std::vector<ip::InterestPoint> final_ip1, final_ip2;
-    for (unsigned idx=0; idx < indices.size(); ++idx) {
+    for (size_t idx=0; idx < indices.size(); ++idx) {
       final_ip1.push_back(matched_ip1[indices[idx]]);
       final_ip2.push_back(matched_ip2[indices[idx]]);
     }
@@ -309,7 +309,7 @@ int main( int argc, char* argv[] ) {
     double radius = current_lola_image(lola_pt[0],lola_pt[1]) +
       current_lola_georef.datum().radius( wac_lonlat[0], wac_lonlat[1] );
 
-    std::cout << lola_pt << " -> " << wac_lonlat << " " << radius << "\n";
+    std::cout << amc_pt << " -> " << wac_lonlat << " " << radius << "\n";
 
     // Create the control point and measurement
     ba::ControlPoint cpoint(ba::ControlPoint::GroundControlPoint);

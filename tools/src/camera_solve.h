@@ -4,6 +4,7 @@
 #include <vw/Math/LevenbergMarquardt.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
 #include <asp/IsisIO/IsisAdjustCameraModel.h>
+#include <boost/foreach.hpp>
 
 namespace vw {
 
@@ -38,7 +39,7 @@ namespace vw {
         Vector2 error = m_camera->point_to_pixel( cp.position() ) -
           cp[0].position();
         subvector(output,index,2) = error;
-        index++;
+        index += 2;
       }
       return output;
     }

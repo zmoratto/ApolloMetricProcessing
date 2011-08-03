@@ -50,6 +50,8 @@ int main( int argc, char* argv[] ) {
   LOLAQuery lola_database;
   std::string wac_file("/Users/zmoratto/Data/Moon/LROWAC/global_100m_JanFeb_and_JulyAug.180.cub");
   DiskImageView<PixelGray<float> > wac_image( wac_file );
+  float wac_nodata_value = -3.40282265508890445e+38;
+  std::cout << "WAC nodata: " << wac_nodata_value << "\n";
   cartography::GeoReference wac_georef;
   cartography::read_georeference( wac_georef,  wac_file );
   std::cout << "Using WAC georef:\n" << wac_georef << "\n";
@@ -139,10 +141,10 @@ int main( int argc, char* argv[] ) {
                                   wac_degree_scale/degree_scale),
                TranslateTransform( -wac_pix_origin[0], -wac_pix_origin[1] ) );
   DiskCacheImageView<PixelGray<float> > wac_cache(
-      normalize(crop(transform( wac_image, wac_trans,
-                                CylindricalEdgeExtension()), 0, 0,
-                     trans_image_size[0], trans_image_size[1])), "tif",
-      TerminalProgressCallback("","Caching WAC:") );
+    apply_mask(normalize(crop(transform( create_mask(wac_image,wac_nodata_value), wac_trans,
+                                         CylindricalEdgeExtension()), 0, 0,
+                              trans_image_size[0], trans_image_size[1]))), "tif",
+    TerminalProgressCallback("","Caching WAC:") );
 
   // OBALOG WAC and Input
   ip::InterestPointList trans_ip, wac_ip;
@@ -238,6 +240,9 @@ int main( int argc, char* argv[] ) {
     std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
     std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
 
+    //write_image( fs::path(cube_file).stem()+"debug1.tif", wac_cache );
+    //write_image( fs::path(cube_file).stem()+"debug2.tif", trans_cache );
+
     std::vector<size_t> indices;
     math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 20);
     Matrix<double> align_matrix = ransac(ransac_ip2,ransac_ip1);
@@ -266,8 +271,6 @@ int main( int argc, char* argv[] ) {
     //std::string oprefix = fs::path(cube_file ).stem();
     asp::cnettk::equalization( final_ip1, final_ip2, 20 );
     //ip::write_binary_match_file(oprefix+"debug.match", final_ip1, final_ip2);
-    //write_image( oprefix+"debug1.tif", wac_cache );
-    //write_image( oprefix+"debug2.tif", trans_cache );
 
     trans_ip.clear();
     wac_ip.clear();

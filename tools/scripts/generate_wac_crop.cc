@@ -14,7 +14,7 @@ namespace fs = boost::filesystem;
 #include "ApolloShapes.h"
 
 int main( int argc, char** argv ) {
-  std::string cube_file(argv[0]); 
+  std::string cube_file(argv[1]); 
   if ( cube_file.empty() )
     return 1;
 
@@ -86,21 +86,25 @@ int main( int argc, char** argv ) {
   // Find the WAC center that we need to focus on
   Vector2 wac_deg_origin =
     subvector(cartography::XYZtoLonLatRadFunctor::apply(model->camera_center(Vector2())),0,2);
+  std::cout << "WAC Deg origin: " << wac_deg_origin << "\n";
   Vector2 wac_pix_origin =
     wac_georef.lonlat_to_pixel( wac_deg_origin );
+  std::cout << "WAC Pix origin: " << wac_pix_origin << "\n";
+  
 
   // Rasterizing a section of WAC at the same scale and area as our
   // image.
-  CompositionTransform<TranslateTransform,CompositionTransform<AffineTransform,ResampleTransform> >
-    wactx = compose( TranslateTransform( -wac_pix_origin[0], -wac_pix_origin[1] ),
+  CompositionTransform<ResampleTransform,CompositionTransform<AffineTransform,TranslateTransform> >
+    wactx = compose( ResampleTransform( wac_degree_scale/degree_scale,
+                                        wac_degree_scale/degree_scale),
                      RotateTransform( -rotate, Vector2() ),
-                     ResampleTransform( degree_scale/wac_degree_scale,
-                                        degree_scale/wac_degree_scale) );
-  ImageViewRef<PixelGray<float> > wac_temporary =
-    apply_mask(normalize(crop(transform(create_mask(wac_image,wac_nodata_value), wactx,
+                     TranslateTransform( -wac_pix_origin[0], -wac_pix_origin[1] ) );
+
+  ImageViewRef<PixelGray<uint8> > wac_temporary =
+    channel_cast_rescale<uint8>(apply_mask(normalize(crop(transform(create_mask(wac_image,wac_nodata_value), wactx,
                                         CylindricalEdgeExtension()),
                               -image.cols()/2, -image.rows()/2,
-                              image.cols(), image.rows())));
+                                                          image.cols(), image.rows()))));
   write_image( "wac_crop.tif", wac_temporary );
 
   return 0;

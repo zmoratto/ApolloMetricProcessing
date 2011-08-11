@@ -12,8 +12,7 @@ class GCPPicker(QtGui.QWidget):
         self.setWindowTitle('Manual GCP Picker')
 
         # Produce our temporary images
-        os.system(os.path.realpath(__file__)[:-19]+"libexec/generate_wac_crop "
-                  argv[0] );
+        os.system(os.path.realpath(__file__)[:-19]+"libexec/generate_wac_crop " + argv[0] );
 
         # Load up images
         self.cube_image = QtGui.QImage( argv[0][:-3]+"tif" )

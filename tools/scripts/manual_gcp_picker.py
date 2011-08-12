@@ -4,6 +4,10 @@
 import sys, os, random
 from PyQt4 import QtGui, QtCore
 
+# Hack to use my modules
+sys.path.append( os.path.realpath(__file__)[:-24]+"libexec" )
+from InterestIO import read_match_file, write_match_file, ip
+
 class Measurement:
     def __init__(self,first,second):
         self.first = first
@@ -24,12 +28,13 @@ class GCPPicker(QtGui.QWidget):
 
         self.setGeometry(10,10,1000,500)
         self.setWindowTitle('Manual GCP Picker')
+        self.cube = argv[1]
 
         # Produce our temporary images
-        #os.system(os.path.realpath(__file__)[:-24]+"libexec/generate_wac_crop " + argv[1] )
+        os.system(os.path.realpath(__file__)[:-24]+"libexec/generate_wac_crop " + self.cube )
 
         # Load up images
-        self.cube_image = QtGui.QImage( argv[1][:-3]+"tif" )
+        self.cube_image = QtGui.QImage( self.cube[:-3]+"tif" )
         self.wac_image  = QtGui.QImage( "wac_crop.tif" )
         self.content_original_size = QtCore.QSize( self.cube_image.width() + self.wac_image.width(),
                                                    self.cube_image.height() )
@@ -39,9 +44,9 @@ class GCPPicker(QtGui.QWidget):
         self.measurements = []
         self.odd_click = QtCore.QPointF(-1,-1);
 
-    #def __del__(self):
-        # Remove our temporary images
-        #os.system("rm wac_crop.tif")
+    def __del__(self):
+        #Remove our temporary images
+        os.system("rm wac_crop.tif")
 
     def paintEvent(self, e):
         qp = QtGui.QPainter()
@@ -86,8 +91,19 @@ class GCPPicker(QtGui.QWidget):
 
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_D:
+            print "Deleting last measurement"
             self.measurements.pop()
             self.update()
+        if e.key() == QtCore.Qt.Key_S:
+            print "Saving measurement"
+            cube_meas = []
+            wac_meas = []
+            for m in self.measurements:
+                cube_meas.append( ip([m.first.x(),m.first.y()],5) )
+                wac_meas.append(  ip([m.second.x(),m.second.y()],5) )
+            write_match_file("wac.match",cube_meas,wac_meas)
+            os.system(os.path.realpath(__file__)[:-24]+"libexec/generate_wac_cnet " + self.cube )
+            os.system("rm wac.match")
 
 if not sys.argv[1:]:
     print "Usage: python manual_gcp_picker.py cubefile"

@@ -1,8 +1,12 @@
+// This is the follow up application to generate_wac_crop
+
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <asp/IsisIO.h>
+#include <vw/InterestPoint/InterestData.h>
+#include <vw/BundleAdjustment/ControlNetwork.h>
 
 using namespace vw;
 using namespace vw::camera;
@@ -94,12 +98,55 @@ int main( int argc, char** argv ) {
                      RotateTransform( -rotate, Vector2() ),
                      TranslateTransform( -wac_pix_origin[0], -wac_pix_origin[1] ) );
 
-  ImageViewRef<PixelGray<uint8> > wac_temporary =
-    channel_cast_rescale<uint8>(apply_mask(normalize(crop(transform(create_mask(wac_image,wac_nodata_value), wactx,
-                                        CylindricalEdgeExtension()),
-                              -image.cols()/2, -image.rows()/2,
-                                                          image.cols(), image.rows()))));
-  write_image( "wac_crop.tif", wac_temporary );
+  // Load up measurements
+  std::vector<ip::InterestPoint> cube_meas, wac_meas;
+  read_binary_match_file("wac.match",cube_meas,wac_meas);
+
+  // Building Control Network
+  ba::ControlNetwork cnet("WAC LOLA GCPs v3",ba::ControlNetwork::ImageToGround);
+  InterpolationView<EdgeExtensionView<ImageViewRef<double>, ConstantEdgeExtension>, BicubicInterpolation> current_lola_image =
+    interpolate(ImageViewRef<double>(), BicubicInterpolation(), ConstantEdgeExtension());
+  std::string current_lola_file;
+  cartography::GeoReference current_lola_georef;
+  for ( std::vector<ip::InterestPoint>::iterator cube_pt = cube_meas.begin(),
+          wac_pt = wac_meas.begin(); cube_pt != cube_meas.end(); ++cube_pt, ++wac_pt ) {
+
+    // Convert WAC to actual lonlat location
+    Vector2 wac_lonlat =
+      wac_georef.pixel_to_lonlat( wactx.reverse( Vector2(wac_pt->x, wac_pt->y) ) );
+
+    // Load corresponding LOLA data
+    std::pair<cartography::GeoReference, std::string> result =
+      lola_database.find_tile( wac_lonlat );
+    if ( result.second != current_lola_file ) {
+      current_lola_file = result.second;
+      current_lola_georef = result.first;
+      current_lola_image =
+        interpolate(ImageViewRef<double>(DiskImageView<double>(result.second)),
+                    BicubicInterpolation(), ConstantEdgeExtension());
+    }
+    Vector2 lola_pt = current_lola_georef.lonlat_to_pixel(wac_lonlat);
+    double radius = current_lola_image(lola_pt[0],lola_pt[1]) +
+      current_lola_georef.datum().radius( wac_lonlat[0], wac_lonlat[1] );
+
+    std::cout << cube_pt->x << " " << cube_pt->y << " -> " << wac_lonlat << " " << radius << "\n";
+
+    // Create the control point and measurement
+    ba::ControlPoint cpoint(ba::ControlPoint::GroundControlPoint);
+    cpoint.set_position(cartography::LonLatRadToXYZFunctor()(Vector3(wac_lonlat[0],
+                                                                     wac_lonlat[1],
+                                                                     radius)));
+    double sigma = 120 * cube_pt->scale;
+    cpoint.set_sigma(Vector3(sigma,sigma,sigma));
+    ba::ControlMeasure cm( cube_pt->x, cube_pt->y, 1, 1,
+                           ba::ControlMeasure::Automatic );
+    cm.set_serial( serial_number );
+    cm.set_image_id( 1 );
+    cpoint.add_measure( cm );
+    cnet.add_control_point( cpoint );
+  }
+
+  cnet.write_binary(fs::path(cube_file).stem()+"_lola_wac.cnet");
 
   return 0;
 }

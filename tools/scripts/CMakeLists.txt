@@ -67,5 +67,6 @@ if (StereoPipeline_FOUND AND QT_FOUND)
 
   add_apollo_hidden( predict_homography predict_homography.cc )
   add_apollo_hidden( generate_wac_crop generate_wac_crop.cc )
+  add_apollo_hidden( generate_wac_cnet generate_wac_cnet.cc )
 
 endif()

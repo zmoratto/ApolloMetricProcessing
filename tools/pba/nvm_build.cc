@@ -40,16 +40,14 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::positional_options_description positional_desc;
   positional_desc.add("input-files", -1);
 
-  std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [options] <singleton nvm> ...\n";
-
+  std::string usage("[options] <singleton nvm> ...");
   po::variables_map vm =
     asp::check_command_line( argc, argv, opt, general_options,
-                             positional, positional_desc, usage.str() );
+                             positional, positional_desc, usage );
 
   if ( opt.input_names.empty() )
     vw_throw( ArgumentErr() << "Missing input nvm files!\n"
-              << usage.str() << general_options );
+              << usage << general_options );
 }
 
 int main( int argc, char* argv[] ) {

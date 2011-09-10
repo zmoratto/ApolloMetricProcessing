@@ -29,8 +29,13 @@ int main( int argc, char* argv[] ) {
   po::notify( vm );
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << "[options] <cube file>\n\n";
+  usage << "Usage: " << argv[0] << " [options] <cube file> <cnet file>\n\n";
   usage << general_options << std::endl;
+
+  if ( vm.count("help") || cnet_file.empty() || cube_file.empty() ) {
+    vw_out() << usage.str() << std::endl;
+    return 1;
+  }
 
   // Get Control Network
   ba::ControlNetwork cnet( cnet_file, ba::FmtBinary );
@@ -50,18 +55,52 @@ int main( int argc, char* argv[] ) {
   std::string serial = camera->serial_number();
 
   // double check that cnet belongs to serial?
+  std::vector<const ba::ControlPoint*> matching_cp;
+  BOOST_FOREACH( ba::ControlPoint const& cp, cnet ) {
+    if ( cp.type() != ba::ControlPoint::GroundControlPoint )
+      continue;
+    bool found = false;
+    BOOST_FOREACH( ba::ControlMeasure const& cm, cp ) {
+      if ( cm.serial() == serial || cm.serial() == cube_file ||
+	   cm.description() == serial || cm.description() == cube_file ) {
+	found = true;
+	break;
+      }
+    }
+    if ( found )
+      matching_cp.push_back( &cp );
+  }
+  if ( !matching_cp.size() )
+    vw_throw( IOErr() << "Unable to find matching control points!" );
+
+  // Create a control network that has the subset of measurements that
+  // apply to this camera.
+  ba::ControlNetwork cnet_gcp("Subset");
+  BOOST_FOREACH( ba::ControlPoint const* cp, matching_cp ) {
+    ba::ControlPoint new_cp(ba::ControlPoint::GroundControlPoint);
+    new_cp.set_position( cp->position() );
+    BOOST_FOREACH( ba::ControlMeasure const& cm, *cp ) {
+      if ( cm.serial() == serial || cm.serial() == cube_file ||
+	   cm.description() == serial || cm.description() == cube_file ) {
+	new_cp.add_measure( cm );
+	break;
+      }
+    }
+    cnet_gcp.add_control_point( new_cp );
+  }
 
   // Let's attempt to solve for the camera from GCP
-  CameraGCPLMA lma_model( cnet, camera );
+  CameraGCPLMA lma_model( cnet_gcp, camera );
   Vector<double> seed = lma_model.extract( camera );
+  double starting_error = norm_2(lma_model(seed)) /cnet_gcp.size();
   std::cout << "-> Attempt with seed: " << seed << "\n";
-  std::cout << "-> Starting error: " << sum(abs(lma_model(seed))) << " px\n";
+  std::cout << "-> Starting error: " << starting_error << " px\n";
   int status = 0;
   Vector<double> objective;
-  objective.set_size( cnet.size() * 2 );
+  objective.set_size( cnet_gcp.size() * 2 );
   Vector<double> result = levenberg_marquardt( lma_model, seed,
                                                objective, status );
-  double error = norm_2(lma_model(result)) / cnet.size();
+  double error = norm_2(lma_model(result)) / cnet_gcp.size();
   std::cout << "-> lma ending error: " << error << "\n";
 
   if ( status < 1 || error > 4 ) {
@@ -73,16 +112,16 @@ int main( int argc, char* argv[] ) {
     std::cout << "-> Starting error: " << sum(abs(lma_model(seed))) << " px\n";
     result = levenberg_marquardt( lma_model, seed,
                                   objective, status );
-    error = norm_2(lma_model(result)) / cnet.size();
+    error = norm_2(lma_model(result)) / cnet_gcp.size();
     std::cout << "-> lma ending error: " << error << "\n";
   }
 
   if ( status < 1 || error > 4 ) {
     std::cout << "DLT:\n";
     std::vector<Vector<double> > point_meas, image_meas;
-    point_meas.reserve( cnet.size() );
-    image_meas.reserve( cnet.size() );
-    BOOST_FOREACH( ba::ControlPoint const& cp, cnet ) {
+    point_meas.reserve( cnet_gcp.size() );
+    image_meas.reserve( cnet_gcp.size() );
+    BOOST_FOREACH( ba::ControlPoint const& cp, cnet_gcp ) {
       point_meas.push_back( Vector<double,4>() );
       subvector(point_meas.back(),0,3) = cp.position();
       point_meas.back()[3] = 1;
@@ -118,7 +157,7 @@ int main( int argc, char* argv[] ) {
     std::cout << "-> Starting error: " << sum(abs(lma_model(seed))) << " px\n";
     result = levenberg_marquardt( lma_model, seed,
                                   objective, status );
-    error = norm_2(lma_model(result)) / cnet.size();
+    error = norm_2(lma_model(result)) / cnet_gcp.size();
     std::cout << "-> lma ending error: " << error << "\n";
   }
 
@@ -129,7 +168,6 @@ int main( int argc, char* argv[] ) {
   std::cout << "Final error : " << error << " px\n"; 
 
   std::cout << "Delta: " << result - seed << "\n";
-  std::cout << "New Solution: " << result << "\n";
 
   // Apply new solution to the equations and then write them back out
   (*posF)[0] = result[0];
@@ -140,16 +178,12 @@ int main( int argc, char* argv[] ) {
   (*poseF)[2] = result[5];
 
   double e = 0, e2 = 0;
-  BOOST_FOREACH( ba::ControlPoint const& cp, cnet ) {
-    //std::cout << cp[0].position() << " " <<  camera->point_to_pixel(cp.position()) << "\n";
-    //std::cout << cp[0].position() - camera->point_to_pixel(cp.position()) << "\n";
+  BOOST_FOREACH( ba::ControlPoint const& cp, cnet_gcp ) {
     e += norm_2_sqr(cp[0].position() - camera->point_to_pixel(cp.position()));
     e2 += norm_2(cp[0].position() - camera->point_to_pixel(cp.position()));
   }
-  std::cout << "E : " << sqrt(e) << "\n";
-  std::cout << "E2: " << e2 / cnet.size() << "\n";
 
-  if ( status > 0 && error < 1 ) {
+  if ( status > 0 && error < 1 && starting_error / error > 50 ) {
     std::cout << "Writing isis_adjust.\n";
     std::ofstream output( adjust_file.c_str() );
     asp::write_equation(output, posF);

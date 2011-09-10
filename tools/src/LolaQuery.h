@@ -11,7 +11,10 @@ namespace vw {
     std::vector<BBox2> m_bboxes;
   public:
     LOLAQuery() {
-      std::string base_path("/Users/zmoratto/Data/Moon/LOLA/LOLA_DEM_1024/");
+      if (!std::getenv("LOLA_PATH"))
+        vw_throw( InputErr() << "LOLA_PATH enviromental variable not set!" );
+      std::string base_path( std::getenv("LOLA_PATH") );
+      base_path += "/";
       // Right
       m_filenames.push_back(base_path+"LDEM_1024_00N_15N_000_030.tif");
       m_bboxes.push_back(BBox2(Vector2(0,0),Vector2(30,15)));
@@ -315,15 +318,28 @@ namespace vw {
 
     std::pair<cartography::GeoReference, std::string>
     find_tile( Vector2 lonlat ) {
-      if ( lonlat[0] < 0 )
-        lonlat[0] += 360;
-      for ( size_t i = 0; i < m_bboxes.size(); i++ ) {
-        if ( m_bboxes[i].contains( lonlat ) ) {
-          std::pair<cartography::GeoReference, std::string> result;
-          cartography::read_georeference( result.first,
-                                          m_filenames[i] );
-          result.second = m_filenames[i];
-          return result;
+      if ( lonlat[0] < 0 ) {
+        for ( size_t i = 0; i < m_bboxes.size(); i++ ) {
+          if ( m_bboxes[i].contains( lonlat + Vector2(360,0) ) ) {
+            std::pair<cartography::GeoReference, std::string> result;
+            cartography::read_georeference( result.first,
+                                            m_filenames[i] );
+            Matrix3x3 tx = result.first.transform();
+            tx(0,2) -= 360;
+            result.first.set_transform(tx);
+            result.second = m_filenames[i];
+            return result;
+          }
+        }
+      } else {
+        for ( size_t i = 0; i < m_bboxes.size(); i++ ) {
+          if ( m_bboxes[i].contains( lonlat ) ) {
+            std::pair<cartography::GeoReference, std::string> result;
+            cartography::read_georeference( result.first,
+                                            m_filenames[i] );
+            result.second = m_filenames[i];
+            return result;
+          }
         }
       }
       vw_throw( ArgumentErr() << "Unable to find match?" );

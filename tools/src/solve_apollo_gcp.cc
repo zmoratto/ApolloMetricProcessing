@@ -1,8 +1,10 @@
 #include <vw/Camera/CameraGeometry.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
+#include <vw/Cartography/SimplePointImageManipulation.h>
 #include <asp/IsisIO/IsisAdjustCameraModel.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
+
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
@@ -18,6 +20,7 @@ int main( int argc, char* argv[] ) {
   general_options.add_options()
     ("cube-file", po::value(&cube_file), "Input cube file.")
     ("cnet-file", po::value(&cnet_file), "Input cnet file.")
+    ("verbose,v", "Display more debug information.")
     ("help,h", "Display this help message");
 
   po::positional_options_description p;
@@ -62,9 +65,9 @@ int main( int argc, char* argv[] ) {
     bool found = false;
     BOOST_FOREACH( ba::ControlMeasure const& cm, cp ) {
       if ( cm.serial() == serial || cm.serial() == cube_file ||
-	   cm.description() == serial || cm.description() == cube_file ) {
-	found = true;
-	break;
+           cm.description() == serial || cm.description() == cube_file ) {
+        found = true;
+        break;
       }
     }
     if ( found )
@@ -81,12 +84,20 @@ int main( int argc, char* argv[] ) {
     new_cp.set_position( cp->position() );
     BOOST_FOREACH( ba::ControlMeasure const& cm, *cp ) {
       if ( cm.serial() == serial || cm.serial() == cube_file ||
-	   cm.description() == serial || cm.description() == cube_file ) {
-	new_cp.add_measure( cm );
-	break;
+           cm.description() == serial || cm.description() == cube_file ) {
+        new_cp.add_measure( cm );
+        break;
       }
     }
     cnet_gcp.add_control_point( new_cp );
+  }
+
+  // Verbose an debugging to see if the LOLA lookup is actually working.
+  if ( vm.count("verbose") ) {
+    BOOST_FOREACH( ba::ControlPoint& cp, cnet_gcp ) {
+      Vector3 lla = cartography::xyz_to_lon_lat_radius(cp.position()) - Vector3(0,0,1737400);
+      vw_out() << "\t" << lla << " -> " << cp[0].position() << "\n";
+    }
   }
 
   // Let's attempt to solve for the camera from GCP
@@ -183,7 +194,7 @@ int main( int argc, char* argv[] ) {
     e2 += norm_2(cp[0].position() - camera->point_to_pixel(cp.position()));
   }
 
-  if ( status > 0 && error < 1 && starting_error / error > 50 ) {
+  if ( status > 0 && (error < 1 || starting_error / error > 50) ) {
     std::cout << "Writing isis_adjust.\n";
     std::ofstream output( adjust_file.c_str() );
     asp::write_equation(output, posF);

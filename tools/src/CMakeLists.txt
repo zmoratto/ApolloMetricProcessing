@@ -58,6 +58,7 @@ if (StereoPipeline_FOUND AND QT_FOUND )
     )
 
   add_apollo_tool( gcp_from_net gcp_from_net.cc )
+  add_apollo_tool( lola_relookup lola_relookup.cc )
 
   set(APOLLO_USED_LIBS
     ${VISIONWORKBENCH_BASE_LIBRARIES}

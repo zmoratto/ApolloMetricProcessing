@@ -18,12 +18,63 @@ namespace fs = boost::filesystem;
 using namespace vw;
 using namespace vw::camera;
 
+bool perform_matching( std::list<ip::InterestPoint> const& wac_ip,
+                       std::list<ip::InterestPoint> const& trans_ip,
+                       Matrix<double>& align_matrix,
+                       std::vector<ip::InterestPoint> & output_wac_ip,
+                       std::vector<ip::InterestPoint> & output_trans_ip ) {
+  std::vector<ip::InterestPoint> ip_wac_v, ip_amc_v;
+  std::copy( wac_ip.begin(), wac_ip.end(),
+             std::back_inserter(ip_wac_v) );
+  std::copy( trans_ip.begin(), trans_ip.end(),
+             std::back_inserter(ip_amc_v) );
+  ip::DefaultMatcher matcher(0.6);
+  std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
+  matcher(ip_wac_v, ip_amc_v, matched_ip1, matched_ip2, false,
+          TerminalProgressCallback( "tools.ipalign", "Matching:"));
+  remove_duplicates( matched_ip1, matched_ip2 );
+
+  std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
+  std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
+
+  math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 20);
+  align_matrix = ransac(ransac_ip2,ransac_ip1);
+  if ( norm_2(subvector(select_col(align_matrix,2),0,2)) > 200 ||
+       align_matrix(0,0) < 0 || align_matrix(1,1) < 0 ) {
+    vw_out(ErrorMessage) << "RANSAC FITTED TO OUTLIER\n\tOUTLIER: "
+                         << align_matrix << "\n";
+    return false;
+  }
+
+  vw_out() << "\t-> Align Matrix: " << align_matrix << "\n";
+  std::vector<size_t> indices =
+    ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
+
+  if ( indices.size() < 6 ) {
+    vw_out(ErrorMessage) << "FAILED TO FIND ENOUGH IPs\n";
+    return false;
+  }
+
+  output_wac_ip.clear();
+  output_trans_ip.clear();
+  output_wac_ip.reserve(indices.size());
+  output_trans_ip.reserve(indices.size());
+
+  BOOST_FOREACH( size_t idx, indices ) {
+    output_wac_ip.push_back(matched_ip1[idx]);
+    output_trans_ip.push_back(matched_ip2[idx]);
+  }
+
+  return true;
+}
+
 int main( int argc, char* argv[] ) {
 
   std::string cube_file;
   po::options_description general_options("Options");
   general_options.add_options()
     ("cube-file", po::value(&cube_file), "Input cube file.")
+    ("save-images", "Save the images used for IP matching.")
     ("help,h", "Display this help message");
 
   po::positional_options_description p;
@@ -108,7 +159,6 @@ int main( int argc, char* argv[] ) {
                             atan2(r_direction[1],r_direction[0]) )/2;
   double degree_scale =
     (norm_2(l_direction)+norm_2(r_direction)) / ( image.cols() + image.rows() );
-    //norm_2(l_direction+r_direction) / norm_2(Vector2(image.rows(),image.cols()));
   std::cout << "Degree scale: " << degree_scale << "\n";
   Vector2 pivot = (Vector2(image.cols(),image.rows()) - Vector2(1,1))/2;
 
@@ -132,8 +182,10 @@ int main( int argc, char* argv[] ) {
 
   // Rasterizing a section of WAC at the same scale and area as our
   Vector2 wac_deg_origin =
-    subvector(cartography::XYZtoLonLatRadFunctor::apply(model->camera_center(Vector2())),0,2) -
+    subvector(cartography::xyz_to_lon_lat_radius(model->camera_center(Vector2())),0,2) -
     elem_prod(Vector2(1,-1),(trans_image_size * degree_scale)/2);
+  vw_out() << "-> WAC degree center: "
+           << cartography::xyz_to_lon_lat_radius(model->camera_center(Vector2())) << "\n";
   Vector2 wac_pix_origin =
     wac_georef.lonlat_to_pixel( wac_deg_origin );
   CompositionTransform<ResampleTransform,TranslateTransform>
@@ -145,6 +197,12 @@ int main( int argc, char* argv[] ) {
                                          CylindricalEdgeExtension()), 0, 0,
                               trans_image_size[0], trans_image_size[1]))), "tif",
     TerminalProgressCallback("","Caching WAC:") );
+
+  if ( vm.count("save-images") ) {
+    std::string prefix = fs::path(cube_file).stem();
+    write_image( prefix+"_wac_cache.tif", wac_cache );
+    write_image( prefix+"_amc_cache.tif", trans_cache );
+  }
 
   // OBALOG WAC and Input
   ip::InterestPointList trans_ip, wac_ip;
@@ -226,57 +284,102 @@ int main( int argc, char* argv[] ) {
 
   // Matching
   {
-    std::vector<ip::InterestPoint> ip_wac_v, ip_amc_v;
-    std::copy( wac_ip.begin(), wac_ip.end(),
-               std::back_inserter(ip_wac_v) );
-    std::copy( trans_ip.begin(), trans_ip.end(),
-               std::back_inserter(ip_amc_v) );
-    ip::DefaultMatcher matcher(0.6);
-    std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
-    matcher(ip_wac_v, ip_amc_v, matched_ip1, matched_ip2, false,
-            TerminalProgressCallback( "tools.ipalign", "Matching:"));
-    remove_duplicates( matched_ip1, matched_ip2 );
+    Matrix<double> align_matrix;
+    std::vector<ip::InterestPoint> output_wac_ip, output_trans_ip;
+    if ( !perform_matching( wac_ip, trans_ip, align_matrix,
+                            output_wac_ip, output_trans_ip ) ) {
+      output_wac_ip.clear(); output_wac_ip.reserve( wac_ip.size() );
+      output_trans_ip.clear(); output_trans_ip.reserve( trans_ip.size() );
+      std::copy( wac_ip.begin(), wac_ip.end(),
+                 std::back_inserter(output_wac_ip) );
+      std::copy( trans_ip.begin(), trans_ip.end(),
+                 std::back_inserter(output_trans_ip) );
 
-    std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
-    std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
+      // Try restarting with an identity matrix
+      Matrix<float> trans_loc_ip( trans_ip.size(), 2 );
+      Matrix<float>::iterator trans_matrix_it = trans_loc_ip.begin();
+      BOOST_FOREACH( ip::InterestPoint const& ip, output_trans_ip ) {
+        *trans_matrix_it++ = ip.x;
+        *trans_matrix_it++ = ip.y;
+      }
+      math::FLANNTree<flann::L2<float> > kd(trans_loc_ip);
 
-    //write_image( fs::path(cube_file).stem()+"debug1.tif", wac_cache );
-    //write_image( fs::path(cube_file).stem()+"debug2.tif", trans_cache );
+      // Now attempt to find the nearest 30 matches by location
+      // ... later filter them to be within 150 px of the query
+      Vector<int> indices(30);
+      Vector<float> distances(30);
+      std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
+      BOOST_FOREACH ( ip::InterestPoint const& ip, wac_ip ) {
+        kd.knn_search( Vector2f(ip.x,ip.y), indices, distances, 30 );
+        if ( distances[0] > 22500 )
+          continue; // Closest match is already more than 150 px away.
 
-    std::vector<size_t> indices;
-    math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 20);
-    Matrix<double> align_matrix = ransac(ransac_ip2,ransac_ip1);
-    if ( norm_2(subvector(select_col(align_matrix,2),0,2)) > 200 ||
-         align_matrix(0,0) < 0 || align_matrix(1,1) < 0 ) {
-      std::cout << "RANSAC FITTED TO OUTLIER\n";
-      return 1;
+        int best_index = -1;
+        double distance1, distance2;
+        distance1 = distance2 = std::numeric_limits<double>::max();
+        BOOST_FOREACH( int idx, indices ) {
+          double dist = norm_2_sqr( ip.descriptor -
+                                    output_trans_ip[idx].descriptor );
+          if ( dist < distance1 ) {
+            best_index = idx;
+            distance2 = distance1;
+            distance1 = dist;
+          } else if ( dist < distance2 ) {
+            distance2 = dist;
+          }
+        }
+        if ( distance1 < distance2*0.6 && best_index >= 0 &&
+             norm_2(Vector2f(ip.x,ip.y) -
+                    Vector2f(output_trans_ip[best_index].x,
+                             output_trans_ip[best_index].y)) < 1000 ) {
+          matched_ip1.push_back( ip );
+          matched_ip2.push_back( output_trans_ip[best_index] );
+        }
+      }
+      remove_duplicates( matched_ip1, matched_ip2 );
+
+      std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
+      std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
+
+      math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 20);
+      align_matrix = ransac(ransac_ip2,ransac_ip1);
+      if ( norm_2(subvector(select_col(align_matrix,2),0,2)) > 500 ||
+           align_matrix(0,0) < 0 || align_matrix(1,1) < 0 ) {
+        vw_out(ErrorMessage) << "RANSAC FITTED TO OUTLIER\n\tOUTLIER: "
+                             << align_matrix << "\n";
+        return 1;
+      }
+
+      vw_out() << "\t-> Align Matrix: " << align_matrix << "\n";
+      std::vector<size_t> ransac_indices =
+        ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
+
+      if ( ransac_indices.size() < 6 ) {
+        vw_out(ErrorMessage) << "FAILED TO FIND ENOUGH IPs\n";
+        return 1;
+      }
+
+      output_wac_ip.clear();
+      output_trans_ip.clear();
+      output_wac_ip.reserve(ransac_indices.size());
+      output_trans_ip.reserve(ransac_indices.size());
+
+      BOOST_FOREACH( size_t idx, ransac_indices ) {
+        output_wac_ip.push_back(matched_ip1[idx]);
+        output_trans_ip.push_back(matched_ip2[idx]);
+      }
     }
 
-    std::cout << "Align Matrix: " << align_matrix << "\n";
-    indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
-
-    std::vector<ip::InterestPoint> final_ip1, final_ip2;
-    for (size_t idx=0; idx < indices.size(); ++idx) {
-      final_ip1.push_back(matched_ip1[indices[idx]]);
-      final_ip2.push_back(matched_ip2[indices[idx]]);
-    }
-
-    if ( final_ip1.size() < 6 ) {
-      std::cout << "FAILED TO FIND ENOUGH IPs\n";
-      return 1;
-    }
-    std::cout << "Found " << final_ip1.size() << " points prior equalization.\n";
+    vw_out() << "\t-> Found " << output_wac_ip.size() << " points prior equalization.\n";
 
     // Equalizing matches
-    //std::string oprefix = fs::path(cube_file ).stem();
-    asp::cnettk::equalization( final_ip1, final_ip2, 20 );
-    //ip::write_binary_match_file(oprefix+"debug.match", final_ip1, final_ip2);
+    asp::cnettk::equalization( output_wac_ip, output_trans_ip, 20 );
 
     trans_ip.clear();
     wac_ip.clear();
-    std::copy( final_ip1.begin(), final_ip1.end(),
+    std::copy( output_wac_ip.begin(), output_wac_ip.end(),
                std::back_inserter(wac_ip) );
-    std::copy( final_ip2.begin(), final_ip2.end(),
+    std::copy( output_trans_ip.begin(), output_trans_ip.end(),
                std::back_inserter(trans_ip) );
   }
 
@@ -329,7 +432,6 @@ int main( int argc, char* argv[] ) {
     cnet.add_control_point( cpoint );
   }
 
-  std::cout << "Stem: " << fs::path(cube_file).stem() << "\n";
   cnet.write_binary(fs::path(cube_file).stem()+"_lola_wac.cnet");
 
   return 0;

@@ -21,6 +21,7 @@ int main( int argc, char* argv[] ) {
     ("cube-file", po::value(&cube_file), "Input cube file.")
     ("cnet-file", po::value(&cnet_file), "Input cnet file.")
     ("verbose,v", "Display more debug information.")
+    ("error-only","Display only the cnet and the projective error.")
     ("help,h", "Display this help message");
 
   po::positional_options_description p;
@@ -104,6 +105,10 @@ int main( int argc, char* argv[] ) {
   CameraGCPLMA lma_model( cnet_gcp, camera );
   Vector<double> seed = lma_model.extract( camera );
   double starting_error = norm_2(lma_model(seed)) /cnet_gcp.size();
+  if ( vm.count("error-only") ) {
+    vw_out() << cnet_file << " -> " << starting_error << " px\n";
+    return 0;
+  }
   std::cout << "-> Attempt with seed: " << seed << "\n";
   std::cout << "-> Starting error: " << starting_error << " px\n";
   int status = 0;
@@ -113,8 +118,9 @@ int main( int argc, char* argv[] ) {
                                                objective, status );
   double error = norm_2(lma_model(result)) / cnet_gcp.size();
   std::cout << "-> lma ending error: " << error << "\n";
+  double dlt_error = error;
 
-  if ( status < 1 || error > 4 ) {
+  if ( status < 1 || error > 2 ) {
     std::cout << "Zero state restart:\n";
     // Attempt with the original Apollo measurements
 
@@ -127,7 +133,7 @@ int main( int argc, char* argv[] ) {
     std::cout << "-> lma ending error: " << error << "\n";
   }
 
-  if ( status < 1 || error > 4 ) {
+  if ( (status < 1 || error > 2) && fabs(error - dlt_error) > 1e-2 ) {
     std::cout << "DLT:\n";
     std::vector<Vector<double> > point_meas, image_meas;
     point_meas.reserve( cnet_gcp.size() );
@@ -188,13 +194,7 @@ int main( int argc, char* argv[] ) {
   (*poseF)[1] = result[4];
   (*poseF)[2] = result[5];
 
-  double e = 0, e2 = 0;
-  BOOST_FOREACH( ba::ControlPoint const& cp, cnet_gcp ) {
-    e += norm_2_sqr(cp[0].position() - camera->point_to_pixel(cp.position()));
-    e2 += norm_2(cp[0].position() - camera->point_to_pixel(cp.position()));
-  }
-
-  if ( status > 0 && (error < 1 || starting_error / error > 50) ) {
+  if ( status > 0 && (error < 2 || starting_error / error > 50 || fabs(dlt_error - error) < 1e-2 ) ) {
     std::cout << "Writing isis_adjust.\n";
     std::ofstream output( adjust_file.c_str() );
     asp::write_equation(output, posF);

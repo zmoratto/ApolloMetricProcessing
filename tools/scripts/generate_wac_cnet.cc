@@ -113,7 +113,8 @@ int main( int argc, char** argv ) {
 
     // Convert WAC to actual lonlat location
     Vector2 wac_lonlat =
-      wac_georef.pixel_to_lonlat( wactx.reverse( Vector2(wac_pt->x, wac_pt->y) ) );
+      wac_georef.pixel_to_lonlat( wactx.reverse( Vector2(wac_pt->x-image.cols()/2,
+                                                         wac_pt->y-image.rows()/2) ) );
 
     // Load corresponding LOLA data
     std::pair<cartography::GeoReference, std::string> result =

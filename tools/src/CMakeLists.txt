@@ -38,6 +38,7 @@ if (HAVE_BOOST_IOSTREAM_GZIP)
   add_apollo_tool( bulk_match_unpack bulk_match_unpack.cc )
 endif()
 add_apollo_tool( ip_disparity ip_disparity.cc )
+add_apollo_tool( create_orthoproject_mask create_orthoproject_mask.cc )
 
 if (StereoPipeline_FOUND AND QT_FOUND )
   include_directories(${StereoPipeline_INCLUDE_DIRS})

@@ -35,6 +35,8 @@ endif(ENABLE_RPATHS)
 
 # Defining packages
 include(AddApollo)
+include(CheckIncludeFiles)
+include(CheckFunctionExists)
 find_package(Boost REQUIRED
   COMPONENTS program_options system thread filesystem iostreams)
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DBOOST_FILESYSTEM_VERSION=2)
@@ -50,7 +52,13 @@ find_package(FLANN)
 find_package(OpenSceneGraph
   COMPONENTS osgViewer osgGA)
 
-# Blanket including of QT, move this after we work out which packages truly need this.
+# Check for important features in the 3rd party libraries that we use
+# in this project.
+check_function_exists(boost::iostreams::gzip_compressor, HAVE_BOOST_IOSTREAMS_GZIP)
+check_include_files(boost/polygon/polygon.hpp HAVE_BOOST_POLYGON_H)
+
+# Blanket including of QT, move this after we work out which packages
+# truly need this.
 if (QT_FOUND)
   set(QT_MODS "Qt" "Qt3Support" "QtAssistant" "QtCore" "QtDBus" "QtDesigner" "QtGui" "QtHelp" "QtMultimedia" "QtNetwork" "QtOpenGL" "QtScript" "QtScriptTools" "QtSql" "QtSvg" "QtTest" "QtUiTools" "QtWebKit" "QtXml" "QtXmlPatterns")
   foreach( QTBASE ${QT_INCLUDE_DIR} )

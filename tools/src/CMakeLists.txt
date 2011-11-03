@@ -24,7 +24,9 @@ set(APOLLO_USED_LIBS
 
 add_apollo_tool( extract_clementine_gcp extract_clementine_gcp.cc )
 add_apollo_tool( apollo_match apollo_match.cc )
-add_apollo_tool( apollo_bulk_match apollo_bulk_match.cc )
+if (HAVE_BOOST_IOSTREAM_GZIP)
+  add_apollo_tool( apollo_bulk_match apollo_bulk_match.cc )
+endif()
 
 set(APOLLO_USED_LIBS
   ${VISIONWORKBENCH_BASE_LIBRARIES}
@@ -32,7 +34,9 @@ set(APOLLO_USED_LIBS
   )
 
 add_apollo_tool( vwip_filter vwip_filter.cc )
-add_apollo_tool( bulk_match_unpack bulk_match_unpack.cc )
+if (HAVE_BOOST_IOSTREAM_GZIP)
+  add_apollo_tool( bulk_match_unpack bulk_match_unpack.cc )
+endif()
 add_apollo_tool( ip_disparity ip_disparity.cc )
 
 if (StereoPipeline_FOUND AND QT_FOUND )
@@ -90,7 +94,10 @@ if (StereoPipeline_FOUND AND QT_FOUND )
 
   add_apollo_tool( extract_lola_wac_gcp extract_lola_wac_gcp.cc )
   add_apollo_tool( extract_lola_wac_gcp2 extract_lola_wac_gcp2.cc )
-  add_apollo_tool( extract_lola_wac_gcp3 extract_lola_wac_gcp3.cc )
+
+  if (HAVE_BOOST_POLYGON_H)
+    add_apollo_tool( extract_lola_wac_gcp3 extract_lola_wac_gcp3.cc )
+  endif()
   add_apollo_tool( solve_apollo_gcp solve_apollo_gcp.cc )
 
 endif()

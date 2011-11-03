@@ -50,7 +50,9 @@ if (StereoPipeline_FOUND AND QT_FOUND )
     )
 
   add_apollo_tool( isis_cnet_to_nvm isis_cnet_to_nvm.cc )
-  add_apollo_tool( obalog_brief_nvm obalog_brief_nvm.cc )
+  if (HAVE_BOOST_POLYGON_H)
+    add_apollo_tool( obalog_brief_nvm obalog_brief_nvm.cc )
+  endif()
   add_apollo_tool( nvm_to_isis_adjust nvm_to_isis_adjust.cc )
 
   set(APOLLO_USED_LIBS

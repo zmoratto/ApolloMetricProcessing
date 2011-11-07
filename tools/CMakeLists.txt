@@ -54,6 +54,7 @@ find_package(OpenSceneGraph
 
 # Check for important features in the 3rd party libraries that we use
 # in this project.
+include_directories(${Boost_INCLUDE_DIRS})
 check_function_exists(boost::iostreams::gzip_compressor, HAVE_BOOST_IOSTREAMS_GZIP)
 check_include_files(boost/polygon/polygon.hpp HAVE_BOOST_POLYGON_H)
 

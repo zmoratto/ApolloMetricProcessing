@@ -19,19 +19,19 @@ namespace vw {
     boost::polygon::construct<Point>(544,0)
   };
   Point RIGHT_FIDUCIAL[] = {
-    boost::polygon::construct<Point>(1144,599),
+    boost::polygon::construct<Point>(1145,599),
     boost::polygon::construct<Point>(1126,570),
-    boost::polygon::construct<Point>(1144,570)
+    boost::polygon::construct<Point>(1145,570)
   };
   Point BOT_FIDUCIAL[] = {
-    boost::polygon::construct<Point>(545,1144),
+    boost::polygon::construct<Point>(545,1145),
     boost::polygon::construct<Point>(573,1126),
-    boost::polygon::construct<Point>(573,1144)
+    boost::polygon::construct<Point>(573,1145)
   };
   Point LENS_CAP[] = {
-    boost::polygon::construct<Point>(1144,0),
-    boost::polygon::construct<Point>(1144,1144),
-    boost::polygon::construct<Point>(1082,1144),
+    boost::polygon::construct<Point>(1145,0),
+    boost::polygon::construct<Point>(1145,1145),
+    boost::polygon::construct<Point>(1082,1145),
     boost::polygon::construct<Point>(899,968),
     boost::polygon::construct<Point>(902,901),
     boost::polygon::construct<Point>(932,831),
@@ -41,10 +41,10 @@ namespace vw {
     boost::polygon::construct<Point>(1055,0)
   };
   Point ANTENNA[] = {
-    boost::polygon::construct<Point>(1144,631),
+    boost::polygon::construct<Point>(1145,631),
     boost::polygon::construct<Point>(779,601),
     boost::polygon::construct<Point>(780,564),
-    boost::polygon::construct<Point>(1144,570)
+    boost::polygon::construct<Point>(1145,570)
   };
 
   struct ApolloShapes {

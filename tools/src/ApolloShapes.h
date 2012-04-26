@@ -29,22 +29,29 @@ namespace vw {
     boost::polygon::construct<Point>(573,1145)
   };
   Point LENS_CAP[] = {
-    boost::polygon::construct<Point>(1145,0),
+    boost::polygon::construct<Point>(1030,0),
+    boost::polygon::construct<Point>(1010,52),
+    boost::polygon::construct<Point>(994,243),
+    boost::polygon::construct<Point>(881,491),
+    boost::polygon::construct<Point>(855,571),
+    boost::polygon::construct<Point>(846,664),
+    boost::polygon::construct<Point>(862,761),
+    boost::polygon::construct<Point>(896,827),
+    boost::polygon::construct<Point>(862,933),
+    boost::polygon::construct<Point>(868,987),
+    boost::polygon::construct<Point>(911,1058),
+    boost::polygon::construct<Point>(1022,1145),
     boost::polygon::construct<Point>(1145,1145),
-    boost::polygon::construct<Point>(1082,1145),
-    boost::polygon::construct<Point>(899,968),
-    boost::polygon::construct<Point>(902,901),
-    boost::polygon::construct<Point>(932,831),
-    boost::polygon::construct<Point>(885,721),
-    boost::polygon::construct<Point>(873,625),
-    boost::polygon::construct<Point>(1048,122),
-    boost::polygon::construct<Point>(1055,0)
+    boost::polygon::construct<Point>(1145,0)
   };
   Point ANTENNA[] = {
-    boost::polygon::construct<Point>(1145,631),
-    boost::polygon::construct<Point>(779,601),
-    boost::polygon::construct<Point>(780,564),
-    boost::polygon::construct<Point>(1145,570)
+    boost::polygon::construct<Point>(1145,524),
+    boost::polygon::construct<Point>(781,535),
+    boost::polygon::construct<Point>(765,547),
+    boost::polygon::construct<Point>(746,575),
+    boost::polygon::construct<Point>(747,606),
+    boost::polygon::construct<Point>(762,619),
+    boost::polygon::construct<Point>(1145,687)
   };
 
   struct ApolloShapes {
@@ -56,8 +63,8 @@ namespace vw {
       boost::polygon::set_points(top_fiducial,  TOP_FIDUCIAL,  TOP_FIDUCIAL+3);
       boost::polygon::set_points(right_fiducial,RIGHT_FIDUCIAL,RIGHT_FIDUCIAL+3);
       boost::polygon::set_points(bot_fiducial,  BOT_FIDUCIAL,  BOT_FIDUCIAL+3);
-      boost::polygon::set_points(lens_cap,      LENS_CAP,      LENS_CAP+10);
-      boost::polygon::set_points(antenna,       ANTENNA,       ANTENNA+4);
+      boost::polygon::set_points(lens_cap,      LENS_CAP,      LENS_CAP+14);
+      boost::polygon::set_points(antenna,       ANTENNA,       ANTENNA+7);
     }
 
     inline bool in_fiducial( Vector2f const& p ) const {

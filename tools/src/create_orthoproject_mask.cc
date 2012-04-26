@@ -35,7 +35,8 @@ public:
     Vector2f point_loc( m_scaling * i, m_scaling * j );
     if ( m_shapes.in_fiducial( point_loc ) )
       return result_type();
-    if ( m_image_number == 151944 ||
+    if ( (m_image_number >= 151941 && m_image_number <= 151944) ||
+         (m_image_number >= 152093 && m_image_number <= 152097) ||
          (m_image_number >= 170233 && m_image_number <= 170313) ||
          (m_image_number >= 171981 && m_image_number <= 172124) ) {
       if ( m_shapes.in_lens_cap( point_loc ) )
@@ -43,8 +44,8 @@ public:
     }
     if ( (m_image_number >= 152093 && m_image_number <= 152204) ||
          (m_image_number >= 161145 && m_image_number <= 161650) ||
-         (m_image_number >= 161897 && m_image_number <= 161985) ||
-         (m_image_number >= 162156 && m_image_number <= 162845) ) {
+         (m_image_number >= 161896 && m_image_number <= 161985) ||
+         (m_image_number >= 162155 && m_image_number <= 162845) ) {
       if ( m_shapes.in_antenna( point_loc ) )
         return result_type();
     }
